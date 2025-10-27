@@ -1,0 +1,30 @@
+# Dossiers de build générés par CLion/CMake
+cmake-build-*/
+CMakeFiles/
+Testing/
+Makefile
+CMakeCache.txt
+*.cmake
+
+# Fichiers binaires et objets
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.lib
+
+# Fichiers temporaires
+*.log
+*.tmp
+*.swp
+
+# CLion / IDE
+.idea/
+.vscode/
+*.user
+
+# Fichiers générés
+output_files/
+out/
