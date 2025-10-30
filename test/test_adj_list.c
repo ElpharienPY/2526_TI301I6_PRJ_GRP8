@@ -1,9 +1,9 @@
-#include "adj_list.h"
-#include "export_mermaid.h"
-#include "markov_check.h"
+/* This file is 100% created by chatgpt to test all adj_list function */
+
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "adj_list.h"
 
 
 int main(void) {
