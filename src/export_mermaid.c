@@ -41,7 +41,9 @@ int write_mermaid(const AdjList *adj, const char *filepath) {
     }
 
     FILE *f = fopen(filepath, "wt");
-    if (f == NULL) {
+    if (!f) {
+        fprintf(stderr, "Error writing graph: cannot open '%s' (%s)\n",
+                filepath, strerror(errno));
         return MMD_ERR_FILE;
     }
 
@@ -84,7 +86,7 @@ int write_mermaid(const AdjList *adj, const char *filepath) {
         EdgeCell *cur = adj->L[u].head;
         while (cur != NULL) {
             // Generate destination node ID
-            if (node_id(cur->v, dst_id, NODE_ID_MAX) == 0) {
+            if (node_id((int)cur->v + 1, dst_id, NODE_ID_MAX) == 0) {
                 fclose(f);
                 return MMD_ERR_FILE;
             }

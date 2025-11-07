@@ -7,7 +7,7 @@
 /* ---------- Constants (Mermaid boilerplate) ---------- */
 
 #define MMD_CONFIG_HEADER \
-"--\n" \
+"---\n" \
 "config:\n"\
 "   layout: elk\n"        \
 "   theme: neo\n"         \
