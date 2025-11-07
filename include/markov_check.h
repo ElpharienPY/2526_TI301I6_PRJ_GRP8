@@ -1,7 +1,7 @@
 #ifndef MARKOV_CHECK_H
 #define MARKOV_CHECK_H
 
-#include <adj_list.h>
+#include "adj_list.h"
 
 // Structure used to store the result of the Markov verification
 typedef struct {
