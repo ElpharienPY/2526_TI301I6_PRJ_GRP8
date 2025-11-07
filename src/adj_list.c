@@ -1,6 +1,7 @@
 #include "adj_list.h"
 #include <stdlib.h>
 
+// Create an empty adjacency list of size n
 AdjList *adj_create(int n) {
     if (n <= 0) {
         return NULL;
@@ -20,6 +21,7 @@ AdjList *adj_create(int n) {
     return adj;
 }
 
+// Free all memory used
 void adj_free(AdjList *adj) {
     if (!adj) {
         return;
@@ -41,6 +43,7 @@ void adj_free(AdjList *adj) {
     free(adj);
 }
 
+// Add an edge u -> v with a probability p
 void adj_add(AdjList *adj, int u, int v, float p) {
     if (!adj) {
         return;
@@ -72,6 +75,7 @@ void adj_add(AdjList *adj, int u, int v, float p) {
     }
 }
 
+// Read graph from file and build adjacency list
 AdjList *adj_read_file(const char *filename) {
     FILE *f = fopen(filename, "rt");
     if (!f) {
@@ -112,6 +116,7 @@ AdjList *adj_read_file(const char *filename) {
 
 }
 
+// Display adj list (debugging)
 void adj_print(AdjList *adj) {
     if (!adj) {
         return;
