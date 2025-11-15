@@ -57,12 +57,13 @@ Check `Plan-Part1-PRJ`
 
 ### 1️⃣ Configure the CMake project
 Ensure the `CMakeLists.txt` file defines:
+
 ```cmake
 add_executable(graph_part1
-    src/main.c
-    src/adj_list.c
-    src/markov_check.c
-    src/export_mermaid.c
+        src/main_part1.c
+        src/adj_list.c
+        src/markov_check.c
+        src/export_mermaid.c
 )
 target_include_directories(graph_part1 PRIVATE include)
 ```
