@@ -21,18 +21,18 @@ typedef struct {
 /* ---- Prototypes functions ---- */
 
 // Create an empty adjacency list
-AdjList *adj_create(int n);
+AdjList *adjCreate(int n);
 
 // Free all the memory
-void adj_free(AdjList *adj);
+void adjFree(AdjList *adj);
 
 // Add a directed edge u,v with probability p
-void adj_add(AdjList *adj, int u, int v, float p);
+void adjAdd(AdjList *adj, int u, int v, float p);
 
 // Read a graph from another file and create an adjacency list
-AdjList *adj_read_file(const char *filename);
+AdjList *adjReadFile(const char *filename);
 
 // Display the adjacency list
-void adj_print(AdjList *adj);
+void adjPrint(AdjList *adj);
 
 #endif //ADJ_LIST_H

@@ -12,7 +12,8 @@ AdjList *adj_create(int n) {
     }
 
     adj->n = n;
-    adj->L = (EdgeList*)calloc((size_t)n, sizeof(EdgeList));
+
+    adj->L = calloc(n, sizeof(EdgeList));
     if (!adj->L) {
         free(adj);
         return NULL;
@@ -34,103 +35,105 @@ void adj_free(AdjList *adj) {
             free(cur);
             cur = next;
         }
-        adj->L[i].head = NULL;
     }
 
     free(adj->L);
-    adj->L = NULL;
-    adj->n = 0;
     free(adj);
 }
 
 // Add an edge u -> v with a probability p
 void adj_add(AdjList *adj, int u, int v, float p) {
-    if (!adj) {
-        return;
-    }
 
+    if (!adj) return;
+
+    /* Validate */
     if (u < 0 || v < 0 || u >= adj->n || v >= adj->n) {
         return;
     }
-
-    if (p < 0.0 || p > 1.0) {
+    if (p < 0.0f || p > 1.0f) {
         return;
     }
 
-    EdgeCell *new = (EdgeCell*)malloc(sizeof(*new));
-    if (!new) {
-        return;
-    }
+    /* Allocate edge */
+    EdgeCell *new = malloc(sizeof(EdgeCell));
+    if (!new) return;
 
     new->p = p;
     new->v = v;
-    new->next = NULL;
+    new->next = adj->L[u].head;
 
-    if (adj->L[u].head == NULL) {
-        adj->L[u].head = new;
-    }
-    else {
-        new->next = adj->L[u].head;
-        adj->L[u].head = new;
-    }
+    /* Insert at head */
+    adj->L[u].head = new;
 }
 
 // Read graph from file and build adjacency list
 AdjList *adj_read_file(const char *filename) {
+
     FILE *f = fopen(filename, "rt");
     if (!f) {
         return NULL;
     }
 
     int n = 0;
-
-    if (fscanf(f, "%d", &n) != 1) {
+    if (fscanf(f, "%d", &n) != 1 || n <= 0) {
         fclose(f);
         return NULL;
     }
 
-    AdjList *adj = malloc(sizeof(*adj));
+    AdjList *adj = adj_create(n);
     if (!adj) {
-        free(adj);
         fclose(f);
         return NULL;
-    }
-    adj->n = n;
-
-    adj->L = malloc(n * sizeof(*(adj->L)));
-    for (int i=0; i<n; i++) {
-        adj->L[i].head = NULL; // Pointer to the first edge
     }
 
     int u, v;
     float p;
-    while (fscanf(f,"%d %d %f", &u, &v,&p) == 3) {
-        int from = u -1;
-        int to = v -1;
 
-        adj_add(adj,from, to, p);
+    /* Read edges until EOF */
+    while (1) {
+
+        int count = fscanf(f, "%d %d %f", &u, &v, &p);
+
+        if (count == EOF || count == 0) {
+            break;  // end or blank line
+        }
+
+        if (count != 3) {
+            // invalid or partial line → ignore safely
+            continue;
+        }
+
+        /* Convert from 1-based (file) to 0-based (internal) */
+        int from = u - 1;
+        int to   = v - 1;
+
+        /* Validate before insertion */
+        if (from >= 0 && from < adj->n &&
+            to >= 0 &&   to < adj->n   )
+        {
+            adj_add(adj, from, to, p);
+        }
     }
 
     fclose(f);
     return adj;
-
 }
 
 // Display adj list (debugging)
 void adj_print(AdjList *adj) {
-    if (!adj) {
-        return;
-    }
+    if (!adj) return;
 
     for (int i = 0; i < adj->n; i++) {
-        printf("%d :",i);
+
+        printf("%d :", i + 1);  // print as 1-based for clarity
 
         EdgeCell *cur = adj->L[i].head;
-
         while (cur != NULL) {
-            printf(" -> %d (%.2f)", cur->v, cur->p);
+            printf(" -> %d (%.2f)", cur->v + 1, cur->p);  // convert back to 1-based
             cur = cur->next;
         }
+
+        printf("\n");
     }
 }
 

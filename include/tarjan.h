@@ -7,39 +7,25 @@
 #include  "partition.h"
  
 typedef struct {
-
     int id;
-
     int index;
-
-    int lowlink;
-
-    int on_stack;
-
+    int lowLink;
+    int onStack;
 } TarjanVertex;
  
 typedef struct {
-
     int *data;
-
     int top;
-
     int size;
-
 } IntStack;
  
 // Global metadata used by Tarjan's algorithm.
  
 typedef struct {
-
     TarjanVertex *vertices;
-
-    int vertex_count;
-
-    int current_index;
-
+    int vertexCount;
+    int currentIndex;
     IntStack *stack;
-
 } TarjanMeta;
  
 // ========== Stack Functions ==========
@@ -48,21 +34,21 @@ int stackInit(IntStack *stack, int size);
  
 int stackPush(IntStack *stack, int value);
  
-int stackPop(IntStack *stack);
+int stackPop(IntStack *stack, int *value);
  
-int stackFree(IntStack *stack);
+void stackFree(IntStack *stack);
  
-int stackIsEmpty(IntStack *stack);
+int stackIsEmpty(const IntStack *stack);
  
-int stackTop(IntStack *stack);
+int stackTop(const IntStack *stack, int *value);
  
 // ========== Tarjan Functions ==========
  
-TarjanMeta TarjanMetaCreate();
- 
-void tarjanMetaFree(TarjanMeta *tarjan_meta);
- 
-void tarjanRun(const AdjList *adj, Partition *partition);
+TarjanMeta tarjanMetaCreate(int vertexCount);
+
+void tarjanMetaFree(TarjanMeta *meta);
+
+int tarjanRun(const AdjList *adj, Partition *partition);
  
  
  
