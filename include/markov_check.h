@@ -10,9 +10,9 @@ typedef struct {
 } MarkovResult;
 
 // Check if each vertex has an outgoing probability sum within [lo, hi]
-MarkovResult markov_is_valid (const AdjList * adj, float lo, float hi);
+MarkovResult markovIsValid (const AdjList * adj, float lo, float hi);
 
 // Display a detailed report showing the sum of probabilities for each vertex
-void markov_report(const AdjList * adj, float lo, float hi);
+void markovReport(const AdjList * adj, float lo, float hi);
 
 #endif //MARKOV_CHECK_H

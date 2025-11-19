@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "markov_check.h"
 
-MarkovResult markov_is_valid(const AdjList *adj, float lo, float hi) {
+MarkovResult markovIsValid(const AdjList *adj, float lo, float hi) {
     // Initialize the result assuming the graph is valid
     MarkovResult res = {1, 0};
 
@@ -33,7 +33,7 @@ MarkovResult markov_is_valid(const AdjList *adj, float lo, float hi) {
     return res;
 }
 
-void markov_report(const AdjList *adj, float lo, float hi) {
+void markovReport(const AdjList *adj, float lo, float hi) {
     // Basic input validation
     if (adj == NULL || adj->n <= 0 || lo > hi) {
         printf("[markov_report] Invalid arguments.\n");

@@ -27,8 +27,8 @@ typedef enum {
 
 /* --------- API ---------- */
 
-size_t node_id(int idx1, char *out, size_t out_cap);
+size_t nodeId(int idx1, char *out, size_t out_cap);
 
-int write_mermaid(const AdjList *adj, const char *filepath);
+int writeMermaid(const AdjList *adj, const char *filepath);
 
 #endif //EXPORT_MERMAID_H

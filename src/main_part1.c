@@ -23,7 +23,7 @@ int main(int argc, char **argv ) {
     const char *in_path = argv[1];
     const char *out_path = argv[2];
 
-    AdjList *adj = adj_read_file(in_path);
+    AdjList *adj = adjReadFile(in_path);
     if (adj == NULL) {
         fprintf(stderr, "Error reading graph\n");
         return 2;
@@ -32,35 +32,35 @@ int main(int argc, char **argv ) {
     // Step 1 (validation) — Display adjacency list
 
     printf("=== Adjacency List (%d vertices) ===\n", adj->n);
-    adj_print(adj);
+    adjPrint(adj);
 
     // Step 2 — Check Markov property with tolerance [0.99 ; 1.00]
 
     const float LO = 0.99f;
     const float HI = 1.00f;
 
-    markov_report(adj, LO, HI);
+    markovReport(adj, LO, HI);
 
-    MarkovResult result = markov_is_valid(adj, LO, HI);
+    MarkovResult result = markovIsValid(adj, LO, HI);
     if (!result.is_markov) {
         fprintf(stderr, "Error validating graph\n");
         printf("Vertices failing check: %d\n", result.bad_count);
-        adj_free(adj);
+        adjFree(adj);
         return 1; // 1 because it's a non-markov graph
     }
 
     // Step 3 — Export Mermaid
 
-    int rc = write_mermaid(adj, out_path);
+    int rc = writeMermaid(adj, out_path);
     if (rc != 0) {
         fprintf(stderr, "Error writing graph\n");
-        adj_free(adj);
+        adjFree(adj);
         return 2;
     }
 
     printf("Vertices failing check: %d\n", result.bad_count);
 
     // Step 4 - Cleanup
-    adj_free(adj);
+    adjFree(adj);
     return 0;
 }
