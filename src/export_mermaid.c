@@ -2,7 +2,7 @@
 #include <string.h>
 #include "export_mermaid.h"
 
-size_t node_id(int idx1, char *out, size_t out_cap) {
+size_t nodeId(int idx1, char *out, size_t out_cap) {
 
     if (out != NULL && out_cap > 0) {
         out[0] = '\0';
@@ -35,7 +35,7 @@ size_t node_id(int idx1, char *out, size_t out_cap) {
     return len;
 }
 
-int write_mermaid(const AdjList *adj, const char *filepath) {
+int writeMermaid(const AdjList *adj, const char *filepath) {
     if (adj == NULL || filepath == NULL) {
         return MMD_ERR_FILE;
     }
@@ -60,7 +60,7 @@ int write_mermaid(const AdjList *adj, const char *filepath) {
     // ---- Step 2: Write nodes (A((1)), B((2)), ...) ----
     char id[NODE_ID_MAX];
     for (size_t i = 0; i < adj->n; ++i) {
-        size_t len = node_id((int)(i + 1), id, NODE_ID_MAX);
+        size_t len = nodeId((int)(i + 1), id, NODE_ID_MAX);
         if (len == 0) {
             fclose(f);
             return MMD_ERR_FILE;
@@ -77,7 +77,7 @@ int write_mermaid(const AdjList *adj, const char *filepath) {
 
     for (size_t u = 0; u < adj->n; ++u) {
         // Generate source node ID (A, B, C...)
-        if (node_id((int)(u + 1), src_id, NODE_ID_MAX) == 0) {
+        if (nodeId((int)(u + 1), src_id, NODE_ID_MAX) == 0) {
             fclose(f);
             return MMD_ERR_FILE;
         }
@@ -86,7 +86,7 @@ int write_mermaid(const AdjList *adj, const char *filepath) {
         EdgeCell *cur = adj->L[u].head;
         while (cur != NULL) {
             // Generate destination node ID
-            if (node_id((int)cur->v + 1, dst_id, NODE_ID_MAX) == 0) {
+            if (nodeId((int)cur->v + 1, dst_id, NODE_ID_MAX) == 0) {
                 fclose(f);
                 return MMD_ERR_FILE;
             }
