@@ -2,10 +2,6 @@
 #include <stdlib.h>
 #include "hasse.h"
 
-/* =========================================================
- *      PARTIE 1 : gestion dynamique du tableau de liens
- * ========================================================= */
-
 static void ensure_capacity(t_link_array *p_array)
 {
     if (p_array->capacity == 0) {
@@ -53,17 +49,13 @@ void add_link(t_link_array *p_array, int from_class, int to_class)
     p_array->size++;
 }
 
-/* =========================================================
- *     PARTIE 2 : Construction du diagramme de Hasse
- * ========================================================= */
-
 void build_links_between_classes(const AdjList *adj,
                                  const Partition *p,
                                  t_link_array *p_links)
 {
     int nb_vertices = adj->n;
 
-    // v2c = tableau qui donne la classe de chaque vertex
+
     const int *v2c = p->v2c;
 
     for (int i = 0; i < nb_vertices; ++i) {
@@ -87,16 +79,12 @@ void build_links_between_classes(const AdjList *adj,
     }
 }
 
-/* =========================================================
- *       PARTIE 3 : Affichage en Mermaid
- * ========================================================= */
-
 void print_hasse_mermaid(const Partition *p,
                          const t_link_array *p_links)
 {
     printf("graph TD;\n");
 
-    /* --- 1) Afficher chaque classe comme un noeud Mermaid --- */
+
     for (int c = 0; c < p->count; ++c) {
 
         const Class *cl = &p->classes[c];
@@ -112,21 +100,17 @@ void print_hasse_mermaid(const Partition *p,
         printf("}\"];\n");
     }
 
-    /* --- 2) Afficher les liens entre classes --- */
+
     for (int i = 0; i < p_links->size; ++i) {
         int from = p_links->data[i].from_class;
         int to   = p_links->data[i].to_class;
 
-        // Classes indexées de 0 → Mermaid en 1,2,3,...
+
         printf("  C%d --> C%d;\n", from + 1, to + 1);
     }
 }
 
-/* =========================================================
- *       PARTIE 4 : liens transitifs (optionnel)
- * ========================================================= */
-
 void removeTransitiveLinks(t_link_array *p_link_array)
 {
-    (void)p_link_array; // si tu veux laisser vide pour l’instant
+    (void)p_link_array;
 }
