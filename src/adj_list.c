@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 // Create an empty adjacency list of size n
-AdjList *adj_create(int n) {
+AdjList *adjCreate(int n) {
     if (n <= 0) {
         return NULL;
     }
@@ -23,7 +23,7 @@ AdjList *adj_create(int n) {
 }
 
 // Free all memory used
-void adj_free(AdjList *adj) {
+void adjFree(AdjList *adj) {
     if (!adj) {
         return;
     }
@@ -42,7 +42,7 @@ void adj_free(AdjList *adj) {
 }
 
 // Add an edge u -> v with a probability p
-void adj_add(AdjList *adj, int u, int v, float p) {
+void adjAdd(AdjList *adj, int u, int v, float p) {
 
     if (!adj) return;
 
@@ -67,7 +67,7 @@ void adj_add(AdjList *adj, int u, int v, float p) {
 }
 
 // Read graph from file and build adjacency list
-AdjList *adj_read_file(const char *filename) {
+AdjList *adjReadFile(const char *filename) {
 
     FILE *f = fopen(filename, "rt");
     if (!f) {
@@ -80,7 +80,7 @@ AdjList *adj_read_file(const char *filename) {
         return NULL;
     }
 
-    AdjList *adj = adj_create(n);
+    AdjList *adj = adjCreate(n);
     if (!adj) {
         fclose(f);
         return NULL;
@@ -111,7 +111,7 @@ AdjList *adj_read_file(const char *filename) {
         if (from >= 0 && from < adj->n &&
             to >= 0 &&   to < adj->n   )
         {
-            adj_add(adj, from, to, p);
+            adjAdd(adj, from, to, p);
         }
     }
 
@@ -120,7 +120,7 @@ AdjList *adj_read_file(const char *filename) {
 }
 
 // Display adj list (debugging)
-void adj_print(AdjList *adj) {
+void adjPrint(AdjList *adj) {
     if (!adj) return;
 
     for (int i = 0; i < adj->n; i++) {
