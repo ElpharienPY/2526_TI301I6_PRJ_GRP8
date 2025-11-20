@@ -1,11 +1,13 @@
 #include <stdlib.h>
 #include "tarjan.h"
 
+/* Return the number of vertices in the adjacency list. */
 static int getVertexCount(const AdjList *adj)
 {
     return adj->n;
 }
 
+/* Initialize an integer stack. */
 int stackInit (IntStack *stack, int size) {
     if (stack == NULL || size <= 0) {
         return 1;
@@ -23,6 +25,8 @@ int stackInit (IntStack *stack, int size) {
     return 0;
 }
 
+
+/* Free the memory used by the stack. */
 void stackFree(IntStack *stack) {
     if (stack == NULL) {
         return;
@@ -37,6 +41,7 @@ void stackFree(IntStack *stack) {
     stack->top = -1;
 }
 
+/* Return 1 if the stack is empty, 0 otherwise. */
 int stackIsEmpty(const IntStack *stack) {
 
     if (stack == NULL) {
@@ -46,6 +51,7 @@ int stackIsEmpty(const IntStack *stack) {
 
 }
 
+/* Push a value on top of the stack. */
 int stackPush(IntStack *stack, int value) {
 
     if (stack == NULL || stack->data == NULL) {
@@ -61,6 +67,7 @@ int stackPush(IntStack *stack, int value) {
     return 0;
 }
 
+/* Read top element of the stack without removing it. */
 int stackTop(const IntStack *stack, int *value) {
     if (stack == NULL || value == NULL) {
         return 1;
@@ -74,6 +81,7 @@ int stackTop(const IntStack *stack, int *value) {
     return 0;
 }
 
+/* Pop the top element from the stack. */
 int stackPop(IntStack *stack, int *value ) {
     if (stack == NULL || value == NULL || stack->data == NULL) {
         return 1;
@@ -89,7 +97,7 @@ int stackPop(IntStack *stack, int *value ) {
 }
 
 /* TARJAN META INITIALISATION */
-
+/* Create and initialize Tarjan metadata for all vertices. */
 TarjanMeta tarjanMetaCreate(int vertexCount)
 {
     TarjanMeta meta;
@@ -134,6 +142,7 @@ TarjanMeta tarjanMetaCreate(int vertexCount)
     return meta;
 }
 
+/* Free all memory used by Tarjan metadata. */
 void tarjanMetaFree(TarjanMeta *meta) {
     if (meta == NULL) {
         return;
@@ -155,10 +164,9 @@ void tarjanMetaFree(TarjanMeta *meta) {
 }
 
 /* INTERNAL DFS FUNCTION — TARJAN VISIT */
-
+/* Depth-first search implementing Tarjan's SCC algorithm (pseudo-code translated to C). */
 static void tarjanVisit(const AdjList *adj, int v, TarjanMeta *meta, Partition *partition)
 {
-    /* --------- VALIDATE v BEFORE ANYTHING --------- */
     if (v < 1 || v > meta->vertexCount) {
         printf("[ERROR] tarjanVisit: invalid v = %d (allowed: 1..%d)\n",
                v, meta->vertexCount);
@@ -174,7 +182,7 @@ static void tarjanVisit(const AdjList *adj, int v, TarjanMeta *meta, Partition *
     stackPush(meta->stack, v);
     tv->onStack = 1;
 
-    /* --------- COMPUTE LIST INDEX SAFELY --------- */
+    /* Compute list index */
     int idx = v - 1;
 
     if (idx < 0 || idx >= adj->n) {
@@ -185,7 +193,7 @@ static void tarjanVisit(const AdjList *adj, int v, TarjanMeta *meta, Partition *
 
     EdgeCell *edge = adj->L[idx].head;
 
-    /* --------- SCAN NEIGHBOURS SAFELY --------- */
+    /* Scan neighbourhood */
     while (edge != NULL) {
 
         int w = edge->v;   // w is 0-based in adjacency list
@@ -193,7 +201,6 @@ static void tarjanVisit(const AdjList *adj, int v, TarjanMeta *meta, Partition *
         /* Convert 0-based storage to 1-based Tarjan vertices */
         int w_vertex = w + 1;
 
-        /* VALIDATE w BEFORE ACCESS */
         if (w_vertex < 1 || w_vertex > meta->vertexCount) {
             printf("[ERROR] Invalid edge: %d -> %d (converted %d)  [vertexCount=%d]\n",
                    v, edge->v, w_vertex, meta->vertexCount);
@@ -219,7 +226,7 @@ static void tarjanVisit(const AdjList *adj, int v, TarjanMeta *meta, Partition *
         edge = edge->next;
     }
 
-    /* --------- ROOT OF SCC --------- */
+    /* If v is a root of SCC, pop stack until v to form this component. */
     if (tv->lowLink == tv->index) {
 
         int *component = malloc(meta->vertexCount * sizeof(int));
@@ -245,7 +252,7 @@ static void tarjanVisit(const AdjList *adj, int v, TarjanMeta *meta, Partition *
     }
 }
 
-
+/* Run Tarjan algorithm on the whole graph to fill the partition with SCCs. */
 int tarjanRun(const AdjList *adj, Partition *partition)
 {
     if (adj == NULL || partition == NULL) {

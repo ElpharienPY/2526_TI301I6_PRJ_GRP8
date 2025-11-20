@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "partition.h"
 
+/* Create and initialize an empty partition for vertexCount vertices. */
 Partition partitionCreate (int vertexCount) {
     Partition p;
     p.classes = NULL;
@@ -23,6 +24,7 @@ Partition partitionCreate (int vertexCount) {
     return p;
 }
 
+/* Add a new class to the partition and update the vertex-to-class mapping. */
 int partitionAddClass(Partition *p, const int *vertices, int count) {
     if (p == NULL || vertices == NULL || count <= 0) {
         return 1; /* Invalid parameters */
@@ -62,6 +64,7 @@ int partitionAddClass(Partition *p, const int *vertices, int count) {
     return 0; /* Success */
 }
 
+/* Free all memory associated with a partition. */
 void partitionFree(Partition *p) {
     if (p == NULL) {
         return;

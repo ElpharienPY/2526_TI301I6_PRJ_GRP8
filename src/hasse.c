@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "hasse.h"
 
+/* Ensure that the dynamic array has enough capacity. */
 static int ensureCapacity(t_link_array *array) {
     if (array == NULL) {
         return 1;
@@ -25,6 +26,7 @@ static int ensureCapacity(t_link_array *array) {
     return 0;
 }
 
+/* Initialize a dynamic array of links. */
 void initLinkArray(t_link_array *array) {
     if (array == NULL) return;
     array->data = NULL;
@@ -32,6 +34,7 @@ void initLinkArray(t_link_array *array) {
     array->capacity = 0;
 }
 
+/* Free memory used by a dynamic array of links. */
 void freeLinkArray(t_link_array *array) {
     if (array == NULL) return;
     if (array->data != NULL) free(array->data);
@@ -40,6 +43,7 @@ void freeLinkArray(t_link_array *array) {
     array->capacity = 0;
 }
 
+/* Return 1 if a link already exists between two classes. */
 int linkExists(const t_link_array *array, int fromClass, int toClass) {
     if (array == NULL || array->data == NULL) return 0;
     for (int i = 0; i < array->size; i++) {
@@ -50,6 +54,7 @@ int linkExists(const t_link_array *array, int fromClass, int toClass) {
     return 0;
 }
 
+/* Add a link between two classes. */
 void addLink(t_link_array *array, int fromClass, int toClass)
 {
     if (array == NULL) return;
@@ -60,10 +65,8 @@ void addLink(t_link_array *array, int fromClass, int toClass)
     array->size++;
 }
 
-void buildLinksBetweenClasses(const AdjList *adj,
-                              const Partition *p,
-                              t_link_array *links)
-{
+/* Build the set of links between classes (SCC graph). */
+void buildLinksBetweenClasses(const AdjList *adj, const Partition *p, t_link_array *links){
     if (adj == NULL || p == NULL || links == NULL) {
         return;
     }
@@ -72,21 +75,19 @@ void buildLinksBetweenClasses(const AdjList *adj,
     int n = adj->n;
 
     for (int i = 0; i < n; i++) {
-        int vertex = i + 1;              // sommets numérotés 1..n
-        int classFrom = v2c[vertex];     // classe du sommet
 
-        if (classFrom < 0) {
-            continue;                    // on ignore si pas de classe
-        }
+        int vertex = i + 1;
+        int classFrom = v2c[vertex];
+        if (classFrom < 0) continue;
 
-        EdgeCell *cell = adj->L[i].head; // liste sortante de "vertex"
+        EdgeCell *cell = adj->L[i].head;
 
         while (cell != NULL) {
-            int neighbour = cell->v;         // voisin 1..n
-            int classTo = v2c[neighbour];    // classe du voisin
+
+            int neighbourVertex = cell->v + 1;
+            int classTo = v2c[neighbourVertex];
 
             if (classTo >= 0 && classFrom != classTo) {
-                printf("edge %d -> %d gives class C%d -> C%d\n", vertex, neighbour, classFrom + 1, classTo + 1);
                 if (!linkExists(links, classFrom, classTo)) {
                     addLink(links, classFrom, classTo);
                 }
@@ -98,6 +99,7 @@ void buildLinksBetweenClasses(const AdjList *adj,
 }
 
 
+/* Export Hasse diagram in Mermaid syntax. */
 void printHasseMermaidToFile(const Partition *p, const t_link_array *links, const char *filepath){
     FILE *f = fopen(filepath, "w");
     if (f == NULL) {
@@ -107,6 +109,7 @@ void printHasseMermaidToFile(const Partition *p, const t_link_array *links, cons
 
     fprintf(f, "graph TD;\n");
 
+    /* Print nodes. */
     for (int c = 0; c < p->count; c++) {
         const Class *cl = &p->classes[c];
         fprintf(f, "  C%d[\"C%d: {", c + 1, c + 1);
@@ -117,6 +120,7 @@ void printHasseMermaidToFile(const Partition *p, const t_link_array *links, cons
         fprintf(f, "}\"];\n");
     }
 
+    /* Print edges. */
     for (int i = 0; i < links->size; i++) {
         fprintf(f, "  C%d --> C%d;\n",
                 links->data[i].from_class + 1,
@@ -125,6 +129,9 @@ void printHasseMermaidToFile(const Partition *p, const t_link_array *links, cons
 
     fclose(f);
 }
+
+/* Remove transitive links from the SCC graph.
+ from https://github.com/nicolas-flasque-efrei/TI_301_PRJ_STUDENTS/blob/master/hasse.c */
 
 void removeTransitiveLinks(t_link_array *array) {
     int i = 0;

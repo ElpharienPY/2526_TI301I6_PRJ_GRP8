@@ -6,6 +6,7 @@
 #include "partition.h"
 #include "hasse.h"
 
+/* Print the partition (one line per strongly connected component). */
 static void printPartition(const Partition *p)
 {
     for (int c = 0; c < p->count; c++) {
@@ -13,8 +14,9 @@ static void printPartition(const Partition *p)
         printf("Component C%d: {", c + 1);
         for (int k = 0; k < cl->size; k++) {
             printf("%d", cl->vertices[k]);
-            if (k < cl->size - 1)
+            if (k < cl->size - 1) {
                 printf(", ");
+            }
         }
         printf("}\n");
     }
@@ -32,6 +34,7 @@ int main(void)
 
     printf("\nLoading graph from file: %s\n", filename);
 
+    /* Build adjacency list from file. */
     AdjList *adj = adjReadFile(filename);
     if (adj == NULL) {
         fprintf(stderr, "Error: could not read graph from file.\n");
@@ -41,6 +44,7 @@ int main(void)
     int n = adj->n;
     printf("Graph loaded with %d vertices.\n\n", n);
 
+    /* Create partition structure and run Tarjan to compute SCCs. */
     Partition partition = partitionCreate(n);
     if (partition.v2c == NULL) {
         fprintf(stderr, "Error: could not allocate partition.\n");
@@ -65,9 +69,9 @@ int main(void)
     }
     printf("\n");
 
+    /* Build Hasse links between classes and remove transitive edges. */
     t_link_array links;
     initLinkArray(&links);
-
     buildLinksBetweenClasses(adj, &partition, &links);
     removeTransitiveLinks(&links);
 
