@@ -60,13 +60,13 @@ void build_links_between_classes(const AdjList *adj,
 
     for (int i = 0; i < nb_vertices; ++i) {
 
-        int Ci = v2c[i];  // classe du vertex i
+        int Ci = v2c[i];
 
         EdgeCell *cell = adj->L[i].head;
 
         while (cell != NULL) {
-            int j  = cell->v;     // voisin
-            int Cj = v2c[j];      // classe du voisin
+            int j  = cell->v;
+            int Cj = v2c[j];
 
             if (Ci != Cj) {
                 if (!link_exists(p_links, Ci, Cj)) {

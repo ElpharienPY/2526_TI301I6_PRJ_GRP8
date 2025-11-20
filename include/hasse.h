@@ -5,8 +5,8 @@
 #include "partition.h"
 
 typedef struct {
-    int from_class;   // indice de la classe de départ
-    int to_class;     // indice de la classe d'arrivée
+    int from_class;
+    int to_class;
 } t_link;
 
 
