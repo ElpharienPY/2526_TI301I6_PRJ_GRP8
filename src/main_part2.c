@@ -37,7 +37,7 @@ int main(void)
     }
 
     /* Load graph */
-    AdjList *adj = adj_read_file(filename);
+    AdjList *adj = adjReadFile(filename);
     if (adj == NULL) {
         printf("Error: could not read graph.\n");
         return EXIT_FAILURE;
@@ -49,7 +49,7 @@ int main(void)
     Partition partition = partitionCreate(adj->n);
     if (partition.v2c == NULL) {
         printf("Error: could not initialize partition.\n");
-        adj_free(adj);
+        adjFree(adj);
         return EXIT_FAILURE;
     }
 
@@ -58,7 +58,7 @@ int main(void)
     if (status != 0) {
         printf("Error during Tarjan execution. Code: %d\n", status);
         partitionFree(&partition);
-        adj_free(adj);
+        adjFree(adj);
         return EXIT_FAILURE;
     }
 
@@ -68,7 +68,7 @@ int main(void)
 
     /* Clean memory */
     partitionFree(&partition);
-    adj_free(adj);
+    adjFree(adj);
 
     return EXIT_SUCCESS;
 }
