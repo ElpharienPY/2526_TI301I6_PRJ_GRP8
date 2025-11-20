@@ -1,72 +1,103 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "adj_list.h"
 #include "tarjan.h"
 #include "partition.h"
+#include "hasse.h"
 
-/* ---- Fonction d'affichage des composantes ---- */
-static void printPartition(const Partition *p) {
-    if (p == NULL) {
-        printf("Partition is NULL.\n");
-        return;
-    }
-
-    for (int i = 0; i < p->count; i++) {
-        printf("Component C%d: {", i + 1);
-
-        for (int j = 0; j < p->classes[i].size; j++) {
-            printf("%d", p->classes[i].vertices[j]);
-            if (j < p->classes[i].size - 1) {
+static void printPartition(const Partition *p)
+{
+    for (int c = 0; c < p->count; c++) {
+        const Class *cl = &p->classes[c];
+        printf("Component C%d: {", c + 1);
+        for (int k = 0; k < cl->size; k++) {
+            printf("%d", cl->vertices[k]);
+            if (k < cl->size - 1)
                 printf(", ");
-            }
         }
-
         printf("}\n");
     }
 }
 
-/* ---- MAIN ---- */
 int main(void)
 {
     char filename[256];
 
     printf("Enter graph file path: ");
     if (scanf("%255s", filename) != 1) {
-        printf("Error reading the file name.\n");
+        fprintf(stderr, "Error: invalid input.\n");
         return EXIT_FAILURE;
     }
 
-    /* Load graph */
+    printf("\nLoading graph from file: %s\n", filename);
+
     AdjList *adj = adjReadFile(filename);
     if (adj == NULL) {
-        printf("Error: could not read graph.\n");
+        fprintf(stderr, "Error: could not read graph from file.\n");
         return EXIT_FAILURE;
     }
 
-    printf("Graph loaded: %d vertices.\n\n", adj->n);
+    int n = adj->n;
+    printf("Graph loaded with %d vertices.\n\n", n);
 
-    /* Create empty partition */
-    Partition partition = partitionCreate(adj->n);
+    Partition partition = partitionCreate(n);
     if (partition.v2c == NULL) {
-        printf("Error: could not initialize partition.\n");
+        fprintf(stderr, "Error: could not allocate partition.\n");
         adjFree(adj);
         return EXIT_FAILURE;
     }
 
-    /* Run Tarjan algorithm */
     int status = tarjanRun(adj, &partition);
     if (status != 0) {
-        printf("Error during Tarjan execution. Code: %d\n", status);
+        fprintf(stderr, "Error: Tarjan algorithm failed (code %d).\n", status);
         partitionFree(&partition);
         adjFree(adj);
         return EXIT_FAILURE;
     }
 
-    /* Print result */
-    printf("=== Strongly Connected Components (Tarjan Result) ===\n");
+    printf("=== Strongly Connected Components (Tarjan) ===\n");
     printPartition(&partition);
 
-    /* Clean memory */
+    printf("\nVertex to class mapping (v2c):\n");
+    for (int v = 1; v <= n; ++v) {
+        printf("  vertex %d -> C%d\n", v, partition.v2c[v] + 1);
+    }
+    printf("\n");
+
+    t_link_array links;
+    initLinkArray(&links);
+
+    buildLinksBetweenClasses(adj, &partition, &links);
+    removeTransitiveLinks(&links);
+
+    /* Added by AI to make Mermaid file creation easier. Create the corresponding output file name
+     "<name>_hasse.mmd" inside ../data/. */
+
+    char outputPath[256];
+
+    const char *base = filename;
+    const char *slash1 = strrchr(filename, '/');
+    const char *slash2 = strrchr(filename, '\\');
+    if (slash1 && slash1 > base) base = slash1 + 1;
+    if (slash2 && slash2 > base) base = slash2 + 1;
+
+    // we copy the name "example2.txt"
+    strcpy(outputPath, "../data/");
+    strcat(outputPath, base);
+
+    // we replace ".txt" by "_hasse.mmd"
+    char *dot = strrchr(outputPath, '.');
+    if (dot) {
+        strcpy(dot, "_hasse.mmd");
+    } else {
+        strcat(outputPath, "_hasse.mmd");
+    }
+    printf("\nSaving Mermaid diagram to %s...\n", outputPath);
+    printHasseMermaidToFile(&partition, &links, outputPath);
+    printf("Done.\n");
+
+    freeLinkArray(&links);
     partitionFree(&partition);
     adjFree(adj);
 

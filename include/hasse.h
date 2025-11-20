@@ -19,23 +19,16 @@ typedef struct {
 
 
 
-void init_link_array(t_link_array *p_array);
-void free_link_array(t_link_array *p_array);
-int  link_exists(const t_link_array *p_array, int from_class, int to_class);
-void add_link(t_link_array *p_array, int from_class, int to_class);
+void initLinkArray(t_link_array *p_array);
+void freeLinkArray(t_link_array *p_array);
+int  linkExists(const t_link_array *p_array, int from_class, int to_class);
+void addLink(t_link_array *p_array, int from_class, int to_class);
 
 
 
-void build_links_between_classes(const AdjList *adj,
-                                 const Partition *p,
-                                 t_link_array *p_links);
+void buildLinksBetweenClasses(const AdjList *adj, const Partition *p, t_link_array *p_links);
 
-
-
-void print_hasse_mermaid(const Partition *p,
-                         const t_link_array *p_links);
-
-
+void printHasseMermaidToFile(const Partition *p, const t_link_array *links, const char *filepath);
 
 void removeTransitiveLinks(t_link_array *p_link_array);
 

@@ -2,75 +2,93 @@
 #include <stdlib.h>
 #include "hasse.h"
 
-static void ensure_capacity(t_link_array *p_array)
-{
-    if (p_array->capacity == 0) {
-        p_array->capacity = 4;
-        p_array->data = (t_link *)malloc(p_array->capacity * sizeof(t_link));
-    } else if (p_array->size >= p_array->capacity) {
-        p_array->capacity *= 2;
-        p_array->data = (t_link *)realloc(p_array->data,
-                                          p_array->capacity * sizeof(t_link));
+static int ensureCapacity(t_link_array *array) {
+    if (array == NULL) {
+        return 1;
     }
+
+    if (array->capacity == 0) {
+        array->capacity = 4;
+        array->data = (t_link *)malloc(array->capacity * sizeof(t_link));
+        if (array->data == NULL) {
+            array->capacity = 0;
+            return 2;
+        }
+    } else if (array->size >= array->capacity) {
+        int newCapacity = array->capacity * 2;
+        t_link *newData = (t_link *)realloc(array->data, newCapacity * sizeof(t_link));
+        if (newData == NULL) return 3;
+        array->data = newData;
+        array->capacity = newCapacity;
+    }
+
+    return 0;
 }
 
-void init_link_array(t_link_array *p_array)
-{
-    p_array->data = NULL;
-    p_array->size = 0;
-    p_array->capacity = 0;
+void initLinkArray(t_link_array *array) {
+    if (array == NULL) return;
+    array->data = NULL;
+    array->size = 0;
+    array->capacity = 0;
 }
 
-void free_link_array(t_link_array *p_array)
-{
-    if (p_array->data != NULL)
-        free(p_array->data);
-
-    p_array->data = NULL;
-    p_array->size = 0;
-    p_array->capacity = 0;
+void freeLinkArray(t_link_array *array) {
+    if (array == NULL) return;
+    if (array->data != NULL) free(array->data);
+    array->data = NULL;
+    array->size = 0;
+    array->capacity = 0;
 }
 
-int link_exists(const t_link_array *p_array, int from_class, int to_class)
-{
-    for (int i = 0; i < p_array->size; ++i) {
-        if (p_array->data[i].from_class == from_class &&
-            p_array->data[i].to_class   == to_class)
+int linkExists(const t_link_array *array, int fromClass, int toClass) {
+    if (array == NULL || array->data == NULL) return 0;
+    for (int i = 0; i < array->size; i++) {
+        if (array->data[i].from_class == fromClass &&
+            array->data[i].to_class == toClass)
             return 1;
     }
     return 0;
 }
 
-void add_link(t_link_array *p_array, int from_class, int to_class)
+void addLink(t_link_array *array, int fromClass, int toClass)
 {
-    ensure_capacity(p_array);
-    p_array->data[p_array->size].from_class = from_class;
-    p_array->data[p_array->size].to_class   = to_class;
-    p_array->size++;
+    if (array == NULL) return;
+    if (ensureCapacity(array) != 0) return;
+
+    array->data[array->size].from_class = fromClass;
+    array->data[array->size].to_class = toClass;
+    array->size++;
 }
 
-void build_links_between_classes(const AdjList *adj,
-                                 const Partition *p,
-                                 t_link_array *p_links)
+void buildLinksBetweenClasses(const AdjList *adj,
+                              const Partition *p,
+                              t_link_array *links)
 {
-    int nb_vertices = adj->n;
-
+    if (adj == NULL || p == NULL || links == NULL) {
+        return;
+    }
 
     const int *v2c = p->v2c;
+    int n = adj->n;
 
-    for (int i = 0; i < nb_vertices; ++i) {
+    for (int i = 0; i < n; i++) {
+        int vertex = i + 1;              // sommets numérotés 1..n
+        int classFrom = v2c[vertex];     // classe du sommet
 
-        int Ci = v2c[i];
+        if (classFrom < 0) {
+            continue;                    // on ignore si pas de classe
+        }
 
-        EdgeCell *cell = adj->L[i].head;
+        EdgeCell *cell = adj->L[i].head; // liste sortante de "vertex"
 
         while (cell != NULL) {
-            int j  = cell->v;
-            int Cj = v2c[j];
+            int neighbour = cell->v;         // voisin 1..n
+            int classTo = v2c[neighbour];    // classe du voisin
 
-            if (Ci != Cj) {
-                if (!link_exists(p_links, Ci, Cj)) {
-                    add_link(p_links, Ci, Cj);
+            if (classTo >= 0 && classFrom != classTo) {
+                printf("edge %d -> %d gives class C%d -> C%d\n", vertex, neighbour, classFrom + 1, classTo + 1);
+                if (!linkExists(links, classFrom, classTo)) {
+                    addLink(links, classFrom, classTo);
                 }
             }
 
@@ -79,38 +97,76 @@ void build_links_between_classes(const AdjList *adj,
     }
 }
 
-void print_hasse_mermaid(const Partition *p,
-                         const t_link_array *p_links)
-{
-    printf("graph TD;\n");
 
+void printHasseMermaidToFile(const Partition *p, const t_link_array *links, const char *filepath){
+    FILE *f = fopen(filepath, "w");
+    if (f == NULL) {
+        perror("fopen");
+        return;
+    }
 
-    for (int c = 0; c < p->count; ++c) {
+    fprintf(f, "graph TD;\n");
 
+    for (int c = 0; c < p->count; c++) {
         const Class *cl = &p->classes[c];
-
-        printf("  C%d[\"C%d: {", c+1, c+1);
-
-        for (int k = 0; k < cl->size; ++k) {
-            printf("%d", cl->vertices[k]);
-            if (k < cl->size - 1)
-                printf(", ");
+        fprintf(f, "  C%d[\"C%d: {", c + 1, c + 1);
+        for (int k = 0; k < cl->size; k++) {
+            fprintf(f, "%d", cl->vertices[k]);
+            if (k < cl->size - 1) fprintf(f, ", ");
         }
-
-        printf("}\"];\n");
+        fprintf(f, "}\"];\n");
     }
 
+    for (int i = 0; i < links->size; i++) {
+        fprintf(f, "  C%d --> C%d;\n",
+                links->data[i].from_class + 1,
+                links->data[i].to_class + 1);
+    }
 
-    for (int i = 0; i < p_links->size; ++i) {
-        int from = p_links->data[i].from_class;
-        int to   = p_links->data[i].to_class;
+    fclose(f);
+}
 
-
-        printf("  C%d --> C%d;\n", from + 1, to + 1);
+void removeTransitiveLinks(t_link_array *array) {
+    int i = 0;
+    while (i < array->size)
+    {
+        t_link link1 = array->data[i];
+        int j = 0;
+        int toRemove = 0;
+        while (j < array->size && !toRemove)
+        {
+            if (j != i)
+            {
+                t_link link2 = array->data[j];
+                if (link1.from_class == link2.from_class)
+                {
+                    int k = 0;
+                    while (k < array->size && !toRemove)
+                    {
+                        if (k != j && k != i)
+                        {
+                            t_link link3 = array->data[k];
+                            if ((link3.from_class == link2.to_class) &&
+                                (link3.to_class == link1.to_class))
+                            {
+                                toRemove = 1;
+                            }
+                        }
+                        k++;
+                    }
+                }
+            }
+            j++;
+        }
+        if (toRemove)
+        {
+            array->data[i] = array->data[array->size - 1];
+            array->size--;
+        }
+        else
+        {
+            i++;
+        }
     }
 }
 
-void removeTransitiveLinks(t_link_array *p_link_array)
-{
-    (void)p_link_array;
-}
