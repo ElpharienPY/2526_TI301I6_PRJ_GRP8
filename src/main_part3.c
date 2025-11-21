@@ -21,7 +21,7 @@ static void compute_stationary_for_matrix(t_matrix M, double epsilon,
     matrixCopy(powM, M);
 
     double diff = 1.0;
-    int    iter = 1;
+    int iter = 1;
 
     while (diff > epsilon && iter < max_iter) {
         matrixCopy(prevM, powM);        // M^(k-1)
@@ -33,6 +33,7 @@ static void compute_stationary_for_matrix(t_matrix M, double epsilon,
     }
 
     printf("\n=== %s ===\n", label);
+
     if (iter >= max_iter) {
         printf("  No convergence after %d iterations (graph may be periodic)\n",
                max_iter);
@@ -64,6 +65,7 @@ int main(void)
 
     printf("\n--- LOADING GRAPH: %s ---\n", filename);
     AdjList *adj = adjReadFile(filename);
+
     if (!adj) {
         fprintf(stderr, "Error: unable to read file or invalid graph.\n");
         return EXIT_FAILURE;
@@ -75,6 +77,7 @@ int main(void)
     matrixPrint(M);
 
     int n = M.size;
+
     t_matrix res  = matrixCreate(n);
     t_matrix powM = matrixCreate(n);
 
@@ -85,6 +88,7 @@ int main(void)
         matrixMultiply(powM, M, res);
         matrixCopy(powM, res);
     }
+
     printf("\n--- 2. MATRIX M^3 (3-step transition) ---\n");
     matrixPrint(powM);
 
@@ -93,6 +97,7 @@ int main(void)
         matrixMultiply(powM, M, res);
         matrixCopy(powM, res);
     }
+
     printf("\n--- 3. MATRIX M^7 (7-step transition) ---\n");
     matrixPrint(powM);
 
@@ -103,29 +108,31 @@ int main(void)
     /* 6. Compute partition with Tarjan */
     printf("\n--- 5. TARJAN PARTITION (STRONGLY CONNECTED COMPONENTS) ---\n");
 
-    /* Create an empty partition for all vertices */
     Partition part = partitionCreate(adj->n);
-
     int err = tarjanRun(adj, &part);
+
     if (err != 0) {
         fprintf(stderr, "Error: tarjanRun failed with code %d\n", err);
+
         matrixFree(&M);
         matrixFree(&res);
         matrixFree(&powM);
         adjFree(adj);
         partitionFree(&part);
+
         return EXIT_FAILURE;
     }
 
     printf("Number of classes: %d\n", part.count);
-
     for (int c = 0; c < part.count; c++) {
         Class cls = part.classes[c];
         printf("  Class C%d (size %d): { ", c + 1, cls.size);
+
         for (int i = 0; i < cls.size; i++) {
             printf("%d", cls.vertices[i]);
             if (i < cls.size - 1) printf(", ");
         }
+
         printf(" }\n");
     }
 
@@ -133,15 +140,13 @@ int main(void)
     printf("\n--- 6. STATIONARY DISTRIBUTION PER CLASS ---\n");
 
     for (int c = 0; c < part.count; c++) {
-
-        t_matrix sub = subMatrix(M, part, c);  // uses Partition + Class
+        t_matrix sub = subMatrix(M, part, c);
 
         char label[64];
         snprintf(label, sizeof(label), "Class C%d", c + 1);
 
         compute_stationary_for_matrix(sub, 0.01, 1000, label);
 
-        /* Bonus: period */
         int period = getPeriod(sub);
         printf("  Period of %s = %d\n\n", label, period);
 

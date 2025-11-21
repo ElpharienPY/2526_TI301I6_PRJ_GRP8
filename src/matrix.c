@@ -1,164 +1,147 @@
+//
+// Created by alexj on 19/11/2025.
+//
+
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "adj_list.h"
+#include <math.h>
 #include "matrix.h"
-#include "tarjan.h"
-#include "partition.h"
 
-/* ---------------------------------------------------------
-   Helper : compute stationary distribution of a matrix
-   --------------------------------------------------------- */
-static void compute_stationary_for_matrix(t_matrix M, double epsilon,
-                                          int max_iter, const char *label)
-{
-    int n = M.size;
+/* Crée une matrice vide (remplie de 0.0) */
+t_matrix matrixCreate(int n) {
+    t_matrix mat;
+    mat.size = n;
 
-    t_matrix powM  = matrixCreate(n);
-    t_matrix prevM = matrixCreate(n);
-    t_matrix tmp   = matrixCreate(n);
-
-    matrixCopy(powM, M);
-
-    double diff = 1.0;
-    int iter = 1;
-
-    while (diff > epsilon && iter < max_iter) {
-        matrixCopy(prevM, powM);        // M^(k-1)
-        matrixMultiply(prevM, M, tmp);  // tmp = M^(k-1) * M
-        matrixCopy(powM, tmp);          // powM = M^k
-
-        diff = matrixDiff(powM, prevM);
-        iter++;
+    if (n <= 0) {
+        mat.data = NULL;
+        return mat;
     }
 
-    printf("\n=== %s ===\n", label);
-
-    if (iter >= max_iter) {
-        printf("  No convergence after %d iterations (graph may be periodic)\n",
-               max_iter);
-    } else {
-        printf("  Convergence reached at n = %d (difference = %g)\n",
-               iter, diff);
-        printf("  Candidate stationary distribution:\n");
-        matrixPrint(powM);
+    // Allocation des lignes
+    mat.data = (double **)malloc(n * sizeof(double *));
+    if (mat.data == NULL) {
+        perror("Erreur allocation matrice");
+        exit(EXIT_FAILURE);
     }
 
-    matrixFree(&powM);
-    matrixFree(&prevM);
-    matrixFree(&tmp);
+    // Allocation des colonnes
+    for (int i = 0; i < n; i++) {
+        mat.data[i] = (double *)calloc(n, sizeof(double)); // calloc met à 0
+        if (mat.data[i] == NULL) {
+            perror("Erreur allocation ligne matrice");
+            exit(EXIT_FAILURE);
+        }
+    }
+    return mat;
 }
 
-/* ---------------------------------------------------------
-   MAIN
-   --------------------------------------------------------- */
-int main(void)
-{
-    char filename[256];
+/* Libération mémoire */
+void matrixFree(t_matrix *mat) {
+    if (mat == NULL || mat->data == NULL) return;
 
-    /* 1. Ask user for graph file */
-    printf("Enter graph file path: ");
-    if (scanf("%255s", filename) != 1) {
-        fprintf(stderr, "Error: invalid input.\n");
-        return EXIT_FAILURE;
+    for (int i = 0; i < mat->size; i++) {
+        free(mat->data[i]);
+    }
+    free(mat->data);
+    mat->data = NULL;
+    mat->size = 0;
+}
+
+/* Conversion AdjList -> Matrix */
+t_matrix adjToMatrix(const AdjList *adj) {
+    if (adj == NULL) {
+        t_matrix empty = {0, NULL};
+        return empty;
     }
 
-    printf("\n--- LOADING GRAPH: %s ---\n", filename);
-    AdjList *adj = adjReadFile(filename);
+    int n = adj->n;
+    t_matrix mat = matrixCreate(n);
 
-    if (!adj) {
-        fprintf(stderr, "Error: unable to read file or invalid graph.\n");
-        return EXIT_FAILURE;
-    }
+    // Parcours de chaque sommet i (source)
+    for (int i = 0; i < n; i++) {
+        // On récupère la tête de liste pour le sommet i
+        EdgeCell *curr = adj->L[i].head;
 
-    /* 2. Build transition matrix M */
-    printf("\n--- 1. TRANSITION MATRIX M ---\n");
-    t_matrix M = adjToMatrix(adj);
-    matrixPrint(M);
+        while (curr != NULL) {
+            int j = curr->v; // Destination (déjà 0-based grâce à adjReadFile)
+            float p = curr->p;
 
-    int n = M.size;
+            // Sécurité bornes
+            if (j >= 0 && j < n) {
+                mat.data[i][j] = (double)p;
+            }
 
-    t_matrix res  = matrixCreate(n);
-    t_matrix powM = matrixCreate(n);
-
-    matrixCopy(powM, M);
-
-    /* 3. Compute M^3 (2 more multiplications) */
-    for (int k = 0; k < 2; k++) {
-        matrixMultiply(powM, M, res);
-        matrixCopy(powM, res);
-    }
-
-    printf("\n--- 2. MATRIX M^3 (3-step transition) ---\n");
-    matrixPrint(powM);
-
-    /* 4. Compute M^7 (continue from M^3) */
-    for (int k = 0; k < 4; k++) {
-        matrixMultiply(powM, M, res);
-        matrixCopy(powM, res);
-    }
-
-    printf("\n--- 3. MATRIX M^7 (7-step transition) ---\n");
-    matrixPrint(powM);
-
-    /* 5. Global convergence on the full matrix */
-    printf("\n--- 4. GLOBAL CONVERGENCE TEST ---\n");
-    compute_stationary_for_matrix(M, 0.01, 1000, "Full Matrix M");
-
-    /* 6. Compute partition with Tarjan */
-    printf("\n--- 5. TARJAN PARTITION (STRONGLY CONNECTED COMPONENTS) ---\n");
-
-    Partition part = partitionCreate(adj->n);
-    int err = tarjanRun(adj, &part);
-
-    if (err != 0) {
-        fprintf(stderr, "Error: tarjanRun failed with code %d\n", err);
-
-        matrixFree(&M);
-        matrixFree(&res);
-        matrixFree(&powM);
-        adjFree(adj);
-        partitionFree(&part);
-
-        return EXIT_FAILURE;
-    }
-
-    printf("Number of classes: %d\n", part.count);
-    for (int c = 0; c < part.count; c++) {
-        Class cls = part.classes[c];
-        printf("  Class C%d (size %d): { ", c + 1, cls.size);
-
-        for (int i = 0; i < cls.size; i++) {
-            printf("%d", cls.vertices[i]);
-            if (i < cls.size - 1) printf(", ");
+            curr = curr->next;
         }
+    }
+    return mat;
+}
 
-        printf(" }\n");
+/* Copie src -> dest */
+void matrixCopy(t_matrix dest, t_matrix src) {
+    if (dest.size != src.size) {
+        fprintf(stderr, "Erreur: Tailles incompatibles pour copie\n");
+        return;
+    }
+    for (int i = 0; i < src.size; i++) {
+        for (int j = 0; j < src.size; j++) {
+            dest.data[i][j] = src.data[i][j];
+        }
+    }
+}
+
+/* Multiplication : result = A * B */
+void matrixMultiply(t_matrix A, t_matrix B, t_matrix result) {
+    if (A.size != B.size || result.size != A.size) {
+        fprintf(stderr, "Erreur: Tailles incompatibles pour multiplication\n");
+        return;
     }
 
-    /* 7. Stationary distribution per class */
-    printf("\n--- 6. STATIONARY DISTRIBUTION PER CLASS ---\n");
-
-    for (int c = 0; c < part.count; c++) {
-        t_matrix sub = subMatrix(M, part, c);
-
-        char label[64];
-        snprintf(label, sizeof(label), "Class C%d", c + 1);
-
-        compute_stationary_for_matrix(sub, 0.01, 1000, label);
-
-        int period = getPeriod(sub);
-        printf("  Period of %s = %d\n\n", label, period);
-
-        matrixFree(&sub);
+    int n = A.size;
+    // Reset result à 0 avant calcul
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            result.data[i][j] = 0.0;
+        }
     }
 
-    /* Cleanup */
-    matrixFree(&M);
-    matrixFree(&res);
-    matrixFree(&powM);
-    adjFree(adj);
-    partitionFree(&part);
+    // Calcul classique O(N^3)
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            double sum = 0.0;
+            for (int k = 0; k < n; k++) {
+                sum += A.data[i][k] * B.data[k][j];
+            }
+            result.data[i][j] = sum;
+        }
+    }
+}
 
-    return EXIT_SUCCESS;
+/* Différence (norme L1 des différences) */
+double matrixDiff(t_matrix A, t_matrix B) {
+    if (A.size != B.size) return -1.0;
+
+    double diff = 0.0;
+    for (int i = 0; i < A.size; i++) {
+        for (int j = 0; j < A.size; j++) {
+            diff += fabs(A.data[i][j] - B.data[i][j]);
+        }
+    }
+    return diff;
+}
+
+/* Affichage propre */
+void matrixPrint(t_matrix mat) {
+    if (mat.data == NULL) return;
+
+    for (int i = 0; i < mat.size; i++) {
+        printf("| ");
+        for (int j = 0; j < mat.size; j++) {
+            // Affiche 0 si très proche de 0, sinon la valeur
+            if (mat.data[i][j] < 0.0001) printf("   .  ");
+            else printf("%5.2f ", mat.data[i][j]);
+        }
+        printf("|\n");
+    }
+    printf("\n");
 }
