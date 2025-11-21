@@ -1,66 +1,89 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "adj_list.h"
 #include "export_mermaid.h"
 #include "markov_check.h"
 
-static void print_usage(const char *prog) {
-    fprintf(stderr,"Usage:\n"
-            "  %s <input.txt> [output.mmd]\n\n"
-            "Arguments:\n"
-            "  input.txt   Data file (first line: N; then lines 'u v p').\n"
-            "  output.mmd  (optional) Mermaid output file. Default: graph.mmd\n",
-            prog);
-}
-
-int main(int argc, char **argv ) {
-    if (argc < 2) {
-        print_usage(argv[0]);
-        return 2; // error file/allocation
-    }
-
-    const char *in_path = argv[1];
-    const char *out_path = argv[2];
-
-    AdjList *adj = adjReadFile(in_path);
-    if (adj == NULL) {
-        fprintf(stderr, "Error reading graph\n");
-        return 2;
-    }
-
-    // Step 1 (validation) — Display adjacency list
-
+static void printAdjacencyAndCheck(AdjList *adj) {
     printf("=== Adjacency List (%d vertices) ===\n", adj->n);
     adjPrint(adj);
-
-    // Step 2 — Check Markov property with tolerance [0.99 ; 1.00]
 
     const float LO = 0.99f;
     const float HI = 1.00f;
 
+    printf("\n=== Markov Check (tolerance [%.2f ; %.2f]) ===\n", LO, HI);
     markovReport(adj, LO, HI);
+}
 
-    MarkovResult result = markovIsValid(adj, LO, HI);
-    if (!result.is_markov) {
-        fprintf(stderr, "Error validating graph\n");
-        printf("Vertices failing check: %d\n", result.bad_count);
-        adjFree(adj);
-        return 1; // 1 because it's a non-markov graph
+int main(void)
+{
+    char filename[256];
+    char outputPath[256];
+
+    printf("\n=== Main part 1 ===\n");
+    printf("Enter graph file path: ");
+    if (scanf("%255s", filename) != 1) {
+        fprintf(stderr, "Error: invalid input.\n");
+        return EXIT_FAILURE;
     }
 
-    // Step 3 — Export Mermaid
+    printf("\nLoading graph from file: %s\n", filename);
 
-    int rc = writeMermaid(adj, out_path);
+    AdjList *adj = adjReadFile(filename);
+    if (adj == NULL) {
+        fprintf(stderr, "Error: could not read graph from file.\n");
+        return EXIT_FAILURE;
+    }
+
+    int n = adj->n;
+    printf("Graph loaded with %d vertices.\n\n", n);
+
+    printAdjacencyAndCheck(adj);
+
+    const float LO = 0.99f;
+    const float HI = 1.00f;
+    MarkovResult result = markovIsValid(adj, LO, HI);
+
+    if (!result.is_markov) {
+        fprintf(stderr, "\nGraph is NOT Markov-valid.\n");
+        printf("Vertices failing check: %d\n", result.bad_count);
+        adjFree(adj);
+        return 1;
+    }
+
+    printf("\nGraph is Markov-valid. Vertices failing check: %d\n",
+           result.bad_count);
+
+    /* Build output Mermaid file path */
+    const char *base = filename;
+    const char *slash1 = strrchr(filename, '/');
+    const char *slash2 = strrchr(filename, '\\');
+    if (slash1 && slash1 > base) base = slash1 + 1;
+    if (slash2 && slash2 > base) base = slash2 + 1;
+
+    strcpy(outputPath, "../output_files/");
+    strcat(outputPath, base);
+
+    char *dot = strrchr(outputPath, '.');
+    if (dot) {
+        strcpy(dot, "_graph.mmd");
+    } else {
+        strcat(outputPath, "_graph.mmd");
+    }
+
+    printf("\nSaving Mermaid Markov graph to %s...\n", outputPath);
+
+    int rc = writeMermaid(adj, outputPath);
     if (rc != 0) {
-        fprintf(stderr, "Error writing graph\n");
+        fprintf(stderr, "Error: could not write Mermaid file.\n");
         adjFree(adj);
         return 2;
     }
 
-    printf("Vertices failing check: %d\n", result.bad_count);
+    printf("Done.\n");
 
-    // Step 4 - Cleanup
     adjFree(adj);
-    return 0;
+    return EXIT_SUCCESS;
 }
