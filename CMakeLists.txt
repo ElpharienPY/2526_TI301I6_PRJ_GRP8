@@ -19,3 +19,11 @@ add_executable(graph_part2
         src/hasse.c
         src/partition.c
 )
+
+add_executable(part3
+        src/main_part3.c
+        src/matrix.c
+        src/adj_list.c
+        include/matrix.h
+        include/adj_list.h
+)
