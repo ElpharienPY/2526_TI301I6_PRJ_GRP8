@@ -87,7 +87,7 @@ int main(void)
     if (slash2 && slash2 > base) base = slash2 + 1;
 
     // we copy the name "example2.txt"
-    strcpy(outputPath, "../data/");
+    strcpy(outputPath, "../output_files/");
     strcat(outputPath, base);
 
     // we replace ".txt" by "_hasse.mmd"
