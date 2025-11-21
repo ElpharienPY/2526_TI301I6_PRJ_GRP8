@@ -18,12 +18,12 @@ add_executable(graph_part2
         src/tarjan.c
         src/hasse.c
         src/partition.c
-        src/sdl_test.c
-        src/sdl_weather.c
+        interface/sdl_test.c
+        interface/sdl_weather.c
 )
 
 add_executable(part3
-        src/main_part3.c
+        src/main_part3.c      # part 3 executable
         src/matrix.c
         src/adj_list.c
         src/tarjan.c
@@ -57,7 +57,7 @@ link_directories(
 
 # Simple SDL test executable
 add_executable(sdl_test
-        src/sdl_test.c
+        interface/sdl_test.c
 )
 
 target_link_libraries(sdl_test
@@ -65,7 +65,7 @@ target_link_libraries(sdl_test
         SDL2_ttf
 )
 add_executable(sdl_weather
-        src/sdl_weather.c
+        interface/sdl_weather.c
         src/adj_list.c
         src/matrix.c
 )
