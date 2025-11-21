@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "matrix.h"
+#include "partition.h"
 
 /* Crée une matrice vide (remplie de 0.0) */
 t_matrix matrixCreate(int n) {
@@ -144,4 +145,95 @@ void matrixPrint(t_matrix mat) {
         printf("|\n");
     }
     printf("\n");
+}
+
+/* Sous-matrice pour une classe (composante fortement connexe) */
+t_matrix subMatrix(t_matrix matrix, Partition part, int compo_index)
+{
+    if (compo_index < 0 || compo_index >= part.count) {
+        fprintf(stderr, "ERROR: invalid component index %d in subMatrix().\n", compo_index);
+        t_matrix empty = {0, NULL};
+        return empty;
+    }
+
+    Class cls = part.classes[compo_index];
+    int k = cls.size;   // nombre de sommets dans cette classe
+
+    t_matrix sub = matrixCreate(k);
+
+    for (int i = 0; i < k; i++) {
+        int orig_i = cls.vertices[i] - 1;  // convertit en indice 0-based
+
+        for (int j = 0; j < k; j++) {
+            int orig_j = cls.vertices[j] - 1; // idem
+            sub.data[i][j] = matrix.data[orig_i][orig_j];
+        }
+    }
+
+    return sub;
+}
+
+/* ---------------- Période d'une classe (bonus) ---------------- */
+
+static int gcd_int(int a, int b) {
+    while (b != 0) {
+        int t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
+}
+
+static int gcd_array(int *vals, int n) {
+    if (n <= 0) return 0;
+    int g = vals[0];
+    for (int i = 1; i < n; i++) {
+        g = gcd_int(g, vals[i]);
+    }
+    return g;
+}
+
+int getPeriod(t_matrix sub_matrix)
+{
+    int n = sub_matrix.size;
+    if (n <= 0) return 0;
+
+    int *periods = malloc(n * sizeof(int));
+    if (!periods) {
+        perror("getPeriod: malloc");
+        return 0;
+    }
+    int pcount = 0;
+
+    t_matrix power = matrixCreate(n);
+    t_matrix tmp   = matrixCreate(n);
+
+    matrixCopy(power, sub_matrix);
+
+    /* Pour k = 1..n, on regarde les éléments diagonaux de S^k */
+    for (int k = 1; k <= n; k++) {
+
+        int diag_nonzero = 0;
+        for (int i = 0; i < n; i++) {
+            if (power.data[i][i] > 0.0) {
+                diag_nonzero = 1;
+                break;
+            }
+        }
+
+        if (diag_nonzero) {
+            periods[pcount++] = k;
+        }
+
+        matrixMultiply(power, sub_matrix, tmp);
+        matrixCopy(power, tmp);
+    }
+
+    int period = gcd_array(periods, pcount);
+
+    free(periods);
+    matrixFree(&power);
+    matrixFree(&tmp);
+
+    return period;
 }

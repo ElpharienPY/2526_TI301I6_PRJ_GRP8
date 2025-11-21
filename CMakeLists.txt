@@ -18,12 +18,61 @@ add_executable(graph_part2
         src/tarjan.c
         src/hasse.c
         src/partition.c
+        src/sdl_test.c
+        src/sdl_weather.c
 )
 
 add_executable(part3
         src/main_part3.c
         src/matrix.c
         src/adj_list.c
-        include/matrix.h
-        include/adj_list.h
+        src/tarjan.c
+        src/partition.c
 )
+
+# ================= SDL TEST TARGET =================
+
+# Roots of your SDL2 and SDL2_ttf installs
+set(SDL2_ROOT      "C:/Users/hdacc/CLionProjects/2526_TI301I6_PRJ_GRP8/modules/SDL2-2.30.12")
+set(SDL2_TTF_ROOT  "C:/Users/hdacc/CLionProjects/2526_TI301I6_PRJ_GRP8/modules/SDL2_ttf-2.20.2")
+
+# Include + lib directories
+set(SDL2_INCLUDE_DIR     "${SDL2_ROOT}/x86_64-w64-mingw32/include/SDL2")
+set(SDL2_LIB_DIR         "${SDL2_ROOT}/x86_64-w64-mingw32/lib")
+
+set(SDL2_TTF_INCLUDE_DIR "${SDL2_TTF_ROOT}/x86_64-w64-mingw32/include/SDL2")
+set(SDL2_TTF_LIB_DIR     "${SDL2_TTF_ROOT}/x86_64-w64-mingw32/lib")
+
+# Add these to the include + link search paths
+include_directories(
+        include
+        ${SDL2_INCLUDE_DIR}
+        ${SDL2_TTF_INCLUDE_DIR}
+)
+
+link_directories(
+        ${SDL2_LIB_DIR}
+        ${SDL2_TTF_LIB_DIR}
+)
+
+# Simple SDL test executable
+add_executable(sdl_test
+        src/sdl_test.c
+)
+
+target_link_libraries(sdl_test
+        SDL2
+        SDL2_ttf
+)
+add_executable(sdl_weather
+        src/sdl_weather.c
+        src/adj_list.c
+        src/matrix.c
+)
+
+target_link_libraries(sdl_weather
+        SDL2
+        SDL2_ttf
+)
+
+
