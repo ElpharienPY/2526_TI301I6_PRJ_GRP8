@@ -26,6 +26,7 @@ int main(void)
 {
     char filename[256];
 
+    printf("\n=== Main part 2 ===\n");
     printf("Enter graph file path: ");
     if (scanf("%255s", filename) != 1) {
         fprintf(stderr, "Error: invalid input.\n");
