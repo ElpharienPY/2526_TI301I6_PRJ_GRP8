@@ -1,239 +1,164 @@
-//
-// Created by alexj on 19/11/2025.
-//
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+
+#include "adj_list.h"
 #include "matrix.h"
+#include "tarjan.h"
 #include "partition.h"
 
-/* Crée une matrice vide (remplie de 0.0) */
-t_matrix matrixCreate(int n) {
-    t_matrix mat;
-    mat.size = n;
-
-    if (n <= 0) {
-        mat.data = NULL;
-        return mat;
-    }
-
-    // Allocation des lignes
-    mat.data = (double **)malloc(n * sizeof(double *));
-    if (mat.data == NULL) {
-        perror("Erreur allocation matrice");
-        exit(EXIT_FAILURE);
-    }
-
-    // Allocation des colonnes
-    for (int i = 0; i < n; i++) {
-        mat.data[i] = (double *)calloc(n, sizeof(double)); // calloc met à 0
-        if (mat.data[i] == NULL) {
-            perror("Erreur allocation ligne matrice");
-            exit(EXIT_FAILURE);
-        }
-    }
-    return mat;
-}
-
-/* Libération mémoire */
-void matrixFree(t_matrix *mat) {
-    if (mat == NULL || mat->data == NULL) return;
-
-    for (int i = 0; i < mat->size; i++) {
-        free(mat->data[i]);
-    }
-    free(mat->data);
-    mat->data = NULL;
-    mat->size = 0;
-}
-
-/* Conversion AdjList -> Matrix */
-t_matrix adjToMatrix(const AdjList *adj) {
-    if (adj == NULL) {
-        t_matrix empty = {0, NULL};
-        return empty;
-    }
-
-    int n = adj->n;
-    t_matrix mat = matrixCreate(n);
-
-    // Parcours de chaque sommet i (source)
-    for (int i = 0; i < n; i++) {
-        // On récupère la tête de liste pour le sommet i
-        EdgeCell *curr = adj->L[i].head;
-
-        while (curr != NULL) {
-            int j = curr->v; // Destination (déjà 0-based grâce à adjReadFile)
-            float p = curr->p;
-
-            // Sécurité bornes
-            if (j >= 0 && j < n) {
-                mat.data[i][j] = (double)p;
-            }
-
-            curr = curr->next;
-        }
-    }
-    return mat;
-}
-
-/* Copie src -> dest */
-void matrixCopy(t_matrix dest, t_matrix src) {
-    if (dest.size != src.size) {
-        fprintf(stderr, "Erreur: Tailles incompatibles pour copie\n");
-        return;
-    }
-    for (int i = 0; i < src.size; i++) {
-        for (int j = 0; j < src.size; j++) {
-            dest.data[i][j] = src.data[i][j];
-        }
-    }
-}
-
-/* Multiplication : result = A * B */
-void matrixMultiply(t_matrix A, t_matrix B, t_matrix result) {
-    if (A.size != B.size || result.size != A.size) {
-        fprintf(stderr, "Erreur: Tailles incompatibles pour multiplication\n");
-        return;
-    }
-
-    int n = A.size;
-    // Reset result à 0 avant calcul
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            result.data[i][j] = 0.0;
-        }
-    }
-
-    // Calcul classique O(N^3)
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            double sum = 0.0;
-            for (int k = 0; k < n; k++) {
-                sum += A.data[i][k] * B.data[k][j];
-            }
-            result.data[i][j] = sum;
-        }
-    }
-}
-
-/* Différence (norme L1 des différences) */
-double matrixDiff(t_matrix A, t_matrix B) {
-    if (A.size != B.size) return -1.0;
-
-    double diff = 0.0;
-    for (int i = 0; i < A.size; i++) {
-        for (int j = 0; j < A.size; j++) {
-            diff += fabs(A.data[i][j] - B.data[i][j]);
-        }
-    }
-    return diff;
-}
-
-/* Affichage propre */
-void matrixPrint(t_matrix mat) {
-    if (mat.data == NULL) return;
-
-    for (int i = 0; i < mat.size; i++) {
-        printf("| ");
-        for (int j = 0; j < mat.size; j++) {
-            // Affiche 0 si très proche de 0, sinon la valeur
-            if (mat.data[i][j] < 0.0001) printf("   .  ");
-            else printf("%5.2f ", mat.data[i][j]);
-        }
-        printf("|\n");
-    }
-    printf("\n");
-}
-
-/* Sous-matrice pour une classe (composante fortement connexe) */
-t_matrix subMatrix(t_matrix matrix, Partition part, int compo_index)
+/* ---------------------------------------------------------
+   Helper : compute stationary distribution of a matrix
+   --------------------------------------------------------- */
+static void compute_stationary_for_matrix(t_matrix M, double epsilon,
+                                          int max_iter, const char *label)
 {
-    if (compo_index < 0 || compo_index >= part.count) {
-        fprintf(stderr, "ERROR: invalid component index %d in subMatrix().\n", compo_index);
-        t_matrix empty = {0, NULL};
-        return empty;
-    }
+    int n = M.size;
 
-    Class cls = part.classes[compo_index];
-    int k = cls.size;   // nombre de sommets dans cette classe
-
-    t_matrix sub = matrixCreate(k);
-
-    for (int i = 0; i < k; i++) {
-        int orig_i = cls.vertices[i] - 1;  // convertit en indice 0-based
-
-        for (int j = 0; j < k; j++) {
-            int orig_j = cls.vertices[j] - 1; // idem
-            sub.data[i][j] = matrix.data[orig_i][orig_j];
-        }
-    }
-
-    return sub;
-}
-
-/* ---------------- Période d'une classe (bonus) ---------------- */
-
-static int gcd_int(int a, int b) {
-    while (b != 0) {
-        int t = b;
-        b = a % b;
-        a = t;
-    }
-    return a;
-}
-
-static int gcd_array(int *vals, int n) {
-    if (n <= 0) return 0;
-    int g = vals[0];
-    for (int i = 1; i < n; i++) {
-        g = gcd_int(g, vals[i]);
-    }
-    return g;
-}
-
-int getPeriod(t_matrix sub_matrix)
-{
-    int n = sub_matrix.size;
-    if (n <= 0) return 0;
-
-    int *periods = malloc(n * sizeof(int));
-    if (!periods) {
-        perror("getPeriod: malloc");
-        return 0;
-    }
-    int pcount = 0;
-
-    t_matrix power = matrixCreate(n);
+    t_matrix powM  = matrixCreate(n);
+    t_matrix prevM = matrixCreate(n);
     t_matrix tmp   = matrixCreate(n);
 
-    matrixCopy(power, sub_matrix);
+    matrixCopy(powM, M);
 
-    /* Pour k = 1..n, on regarde les éléments diagonaux de S^k */
-    for (int k = 1; k <= n; k++) {
+    double diff = 1.0;
+    int iter = 1;
 
-        int diag_nonzero = 0;
-        for (int i = 0; i < n; i++) {
-            if (power.data[i][i] > 0.0) {
-                diag_nonzero = 1;
-                break;
-            }
-        }
+    while (diff > epsilon && iter < max_iter) {
+        matrixCopy(prevM, powM);        // M^(k-1)
+        matrixMultiply(prevM, M, tmp);  // tmp = M^(k-1) * M
+        matrixCopy(powM, tmp);          // powM = M^k
 
-        if (diag_nonzero) {
-            periods[pcount++] = k;
-        }
-
-        matrixMultiply(power, sub_matrix, tmp);
-        matrixCopy(power, tmp);
+        diff = matrixDiff(powM, prevM);
+        iter++;
     }
 
-    int period = gcd_array(periods, pcount);
+    printf("\n=== %s ===\n", label);
 
-    free(periods);
-    matrixFree(&power);
+    if (iter >= max_iter) {
+        printf("  No convergence after %d iterations (graph may be periodic)\n",
+               max_iter);
+    } else {
+        printf("  Convergence reached at n = %d (difference = %g)\n",
+               iter, diff);
+        printf("  Candidate stationary distribution:\n");
+        matrixPrint(powM);
+    }
+
+    matrixFree(&powM);
+    matrixFree(&prevM);
     matrixFree(&tmp);
+}
 
-    return period;
+/* ---------------------------------------------------------
+   MAIN
+   --------------------------------------------------------- */
+int main(void)
+{
+    char filename[256];
+
+    /* 1. Ask user for graph file */
+    printf("Enter graph file path: ");
+    if (scanf("%255s", filename) != 1) {
+        fprintf(stderr, "Error: invalid input.\n");
+        return EXIT_FAILURE;
+    }
+
+    printf("\n--- LOADING GRAPH: %s ---\n", filename);
+    AdjList *adj = adjReadFile(filename);
+
+    if (!adj) {
+        fprintf(stderr, "Error: unable to read file or invalid graph.\n");
+        return EXIT_FAILURE;
+    }
+
+    /* 2. Build transition matrix M */
+    printf("\n--- 1. TRANSITION MATRIX M ---\n");
+    t_matrix M = adjToMatrix(adj);
+    matrixPrint(M);
+
+    int n = M.size;
+
+    t_matrix res  = matrixCreate(n);
+    t_matrix powM = matrixCreate(n);
+
+    matrixCopy(powM, M);
+
+    /* 3. Compute M^3 (2 more multiplications) */
+    for (int k = 0; k < 2; k++) {
+        matrixMultiply(powM, M, res);
+        matrixCopy(powM, res);
+    }
+
+    printf("\n--- 2. MATRIX M^3 (3-step transition) ---\n");
+    matrixPrint(powM);
+
+    /* 4. Compute M^7 (continue from M^3) */
+    for (int k = 0; k < 4; k++) {
+        matrixMultiply(powM, M, res);
+        matrixCopy(powM, res);
+    }
+
+    printf("\n--- 3. MATRIX M^7 (7-step transition) ---\n");
+    matrixPrint(powM);
+
+    /* 5. Global convergence on the full matrix */
+    printf("\n--- 4. GLOBAL CONVERGENCE TEST ---\n");
+    compute_stationary_for_matrix(M, 0.01, 1000, "Full Matrix M");
+
+    /* 6. Compute partition with Tarjan */
+    printf("\n--- 5. TARJAN PARTITION (STRONGLY CONNECTED COMPONENTS) ---\n");
+
+    Partition part = partitionCreate(adj->n);
+    int err = tarjanRun(adj, &part);
+
+    if (err != 0) {
+        fprintf(stderr, "Error: tarjanRun failed with code %d\n", err);
+
+        matrixFree(&M);
+        matrixFree(&res);
+        matrixFree(&powM);
+        adjFree(adj);
+        partitionFree(&part);
+
+        return EXIT_FAILURE;
+    }
+
+    printf("Number of classes: %d\n", part.count);
+    for (int c = 0; c < part.count; c++) {
+        Class cls = part.classes[c];
+        printf("  Class C%d (size %d): { ", c + 1, cls.size);
+
+        for (int i = 0; i < cls.size; i++) {
+            printf("%d", cls.vertices[i]);
+            if (i < cls.size - 1) printf(", ");
+        }
+
+        printf(" }\n");
+    }
+
+    /* 7. Stationary distribution per class */
+    printf("\n--- 6. STATIONARY DISTRIBUTION PER CLASS ---\n");
+
+    for (int c = 0; c < part.count; c++) {
+        t_matrix sub = subMatrix(M, part, c);
+
+        char label[64];
+        snprintf(label, sizeof(label), "Class C%d", c + 1);
+
+        compute_stationary_for_matrix(sub, 0.01, 1000, label);
+
+        int period = getPeriod(sub);
+        printf("  Period of %s = %d\n\n", label, period);
+
+        matrixFree(&sub);
+    }
+
+    /* Cleanup */
+    matrixFree(&M);
+    matrixFree(&res);
+    matrixFree(&powM);
+    adjFree(adj);
+    partitionFree(&part);
+
+    return EXIT_SUCCESS;
 }
