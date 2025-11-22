@@ -1,14 +1,10 @@
-//
-// Created by alexj on 19/11/2025.
-//
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include "matrix.h"
 #include "partition.h"
 
-/* Crée une matrice vide (remplie de 0.0) */
+/* Create N×N matrix initialized to 0 */
 t_matrix matrixCreate(int n) {
     t_matrix mat;
     mat.size = n;
@@ -18,70 +14,63 @@ t_matrix matrixCreate(int n) {
         return mat;
     }
 
-    // Allocation des lignes
     mat.data = (double **)malloc(n * sizeof(double *));
-    if (mat.data == NULL) {
-        perror("Erreur allocation matrice");
+    if (!mat.data) {
+        perror("alloc");
         exit(EXIT_FAILURE);
     }
 
-    // Allocation des colonnes
     for (int i = 0; i < n; i++) {
-        mat.data[i] = (double *)calloc(n, sizeof(double)); // calloc met à 0
-        if (mat.data[i] == NULL) {
-            perror("Erreur allocation ligne matrice");
+        mat.data[i] = (double *)calloc(n, sizeof(double));
+        if (!mat.data[i]) {
+            perror("alloc row");
             exit(EXIT_FAILURE);
         }
     }
     return mat;
 }
 
-/* Libération mémoire */
+/* Free matrix memory */
 void matrixFree(t_matrix *mat) {
-    if (mat == NULL || mat->data == NULL) return;
+    if (!mat || !mat->data) return;
 
     for (int i = 0; i < mat->size; i++) {
         free(mat->data[i]);
     }
     free(mat->data);
+
     mat->data = NULL;
     mat->size = 0;
 }
 
-/* Conversion AdjList -> Matrix */
+/* Build transition matrix from adjacency list */
 t_matrix adjToMatrix(const AdjList *adj) {
-    if (adj == NULL) {
-        t_matrix empty = (t_matrix){0, NULL};
+    if (!adj) {
+        t_matrix empty = {0, NULL};
         return empty;
     }
 
     int n = adj->n;
     t_matrix mat = matrixCreate(n);
 
-    // Parcours de chaque sommet i (source)
     for (int i = 0; i < n; i++) {
-        // On récupère la tête de liste pour le sommet i
         EdgeCell *curr = adj->L[i].head;
-
-        while (curr != NULL) {
-            int j = curr->v; // Destination (déjà 0-based grâce à adjReadFile)
+        while (curr) {
+            int j = curr->v;      /* 0-based destination */
             float p = curr->p;
-
-            // Sécurité bornes
             if (j >= 0 && j < n) {
-                mat.data[i][j] = (double)p;
+                mat.data[i][j] = p;
             }
-
             curr = curr->next;
         }
     }
     return mat;
 }
 
-/* Copie src -> dest */
+/* Copy src → dest */
 void matrixCopy(t_matrix dest, t_matrix src) {
     if (dest.size != src.size) {
-        fprintf(stderr, "Erreur: Tailles incompatibles pour copie\n");
+        fprintf(stderr, "size mismatch copy\n");
         return;
     }
     for (int i = 0; i < src.size; i++) {
@@ -91,22 +80,21 @@ void matrixCopy(t_matrix dest, t_matrix src) {
     }
 }
 
-/* Multiplication : result = A * B */
+/* result = A × B */
 void matrixMultiply(t_matrix A, t_matrix B, t_matrix result) {
     if (A.size != B.size || result.size != A.size) {
-        fprintf(stderr, "Erreur: Tailles incompatibles pour multiplication\n");
+        fprintf(stderr, "size mismatch mult\n");
         return;
     }
 
     int n = A.size;
-    // Reset result à 0 avant calcul
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            result.data[i][j] = 0.0;
-        }
-    }
 
-    // Calcul classique O(N^3)
+    /* Reset output */
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++)
+            result.data[i][j] = 0.0;
+
+    /* Standard triple-loop */
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             double sum = 0.0;
@@ -118,7 +106,7 @@ void matrixMultiply(t_matrix A, t_matrix B, t_matrix result) {
     }
 }
 
-/* Différence (norme L1 des différences) */
+/* Compute L1 difference between matrices */
 double matrixDiff(t_matrix A, t_matrix B) {
     if (A.size != B.size) return -1.0;
 
@@ -131,15 +119,14 @@ double matrixDiff(t_matrix A, t_matrix B) {
     return diff;
 }
 
-/* Affichage propre */
+/* Print matrix */
 void matrixPrint(t_matrix mat) {
-    if (mat.data == NULL) return;
+    if (!mat.data) return;
 
     for (int i = 0; i < mat.size; i++) {
         printf("| ");
         for (int j = 0; j < mat.size; j++) {
-            // Affiche 0 si très proche de 0, sinon la valeur
-            if (mat.data[i][j] < 0.0001) printf("   .  ");
+            if (fabs(mat.data[i][j]) < 0.0001) printf("  .   ");
             else printf("%5.2f ", mat.data[i][j]);
         }
         printf("|\n");
@@ -147,34 +134,30 @@ void matrixPrint(t_matrix mat) {
     printf("\n");
 }
 
-/* Sous-matrice pour une classe (composante fortement connexe) */
-t_matrix subMatrix(t_matrix matrix, Partition part, int compo_index)
-{
+/* Extract submatrix for class index */
+t_matrix subMatrix(t_matrix matrix, Partition part, int compo_index) {
     if (compo_index < 0 || compo_index >= part.count) {
-        fprintf(stderr, "ERROR: invalid component index %d in subMatrix().\n", compo_index);
-        t_matrix empty = (t_matrix){0, NULL};
+        fprintf(stderr, "bad comp index\n");
+        t_matrix empty = {0, NULL};
         return empty;
     }
 
     Class cls = part.classes[compo_index];
-    int k = cls.size;   // nombre de sommets dans cette classe
+    int k = cls.size;
 
     t_matrix sub = matrixCreate(k);
 
     for (int i = 0; i < k; i++) {
-        int orig_i = cls.vertices[i] - 1;  // convertit en indice 0-based
-
+        int oi = cls.vertices[i] - 1; /* convert to 0-based */
         for (int j = 0; j < k; j++) {
-            int orig_j = cls.vertices[j] - 1; // idem
-            sub.data[i][j] = matrix.data[orig_i][orig_j];
+            int oj = cls.vertices[j] - 1;
+            sub.data[i][j] = matrix.data[oi][oj];
         }
     }
-
     return sub;
 }
 
-/* ---------------- Période d'une classe (bonus) ---------------- */
-
+/* gcd internal helper */
 static int gcd_int(int a, int b) {
     while (b != 0) {
         int t = b;
@@ -184,23 +167,23 @@ static int gcd_int(int a, int b) {
     return a;
 }
 
+/* gcd for array */
 static int gcd_array(int *vals, int n) {
     if (n <= 0) return 0;
     int g = vals[0];
-    for (int i = 1; i < n; i++) {
+    for (int i = 1; i < n; i++)
         g = gcd_int(g, vals[i]);
-    }
     return g;
 }
 
-int getPeriod(t_matrix sub_matrix)
-{
+/* Compute class period */
+int getPeriod(t_matrix sub_matrix) {
     int n = sub_matrix.size;
     if (n <= 0) return 0;
 
     int *periods = malloc(n * sizeof(int));
     if (!periods) {
-        perror("getPeriod: malloc");
+        perror("malloc");
         return 0;
     }
     int pcount = 0;
@@ -210,9 +193,7 @@ int getPeriod(t_matrix sub_matrix)
 
     matrixCopy(power, sub_matrix);
 
-    /* Pour k = 1..n, on regarde les éléments diagonaux de S^k */
     for (int k = 1; k <= n; k++) {
-
         int diag_nonzero = 0;
         for (int i = 0; i < n; i++) {
             if (power.data[i][i] > 0.0) {
@@ -220,10 +201,8 @@ int getPeriod(t_matrix sub_matrix)
                 break;
             }
         }
-
-        if (diag_nonzero) {
+        if (diag_nonzero)
             periods[pcount++] = k;
-        }
 
         matrixMultiply(power, sub_matrix, tmp);
         matrixCopy(power, tmp);

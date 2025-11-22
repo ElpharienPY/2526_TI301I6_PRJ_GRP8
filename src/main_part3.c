@@ -6,9 +6,7 @@
 #include "tarjan.h"
 #include "partition.h"
 
-/* ---------------------------------------------------------
-   Helper : compute stationary distribution of a matrix
-   --------------------------------------------------------- */
+/* Helper : compute stationary distribution of a matrix */
 static void compute_stationary_for_matrix(t_matrix M, double epsilon,
                                           int max_iter, const char *label)
 {
@@ -49,9 +47,7 @@ static void compute_stationary_for_matrix(t_matrix M, double epsilon,
     matrixFree(&tmp);
 }
 
-/* ---------------------------------------------------------
-   MAIN
-   --------------------------------------------------------- */
+
 int main(void)
 {
     char filename[256];
