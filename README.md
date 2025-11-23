@@ -1,181 +1,284 @@
-# 🧮 TI301I – Study of Markov Graphs (Part 1)
+# 🧮 TI301I – Study of Markov Graphs (Parts 1–3)
 
-## 📘 Overview
+## 📌 1. Project overview
 
-This project is part of the **Algorithms and Data Structures 2 (TI301I)** course, and aims to implement the **representation and verification of Markov graphs** using **adjacency lists** in C.
+This repository contains the full implementation of the TI301I project  
+**“Study of Markov Graphs”** (Parts 1, 2 and 3).
 
 A **Markov graph** is a directed graph where:
-- Each vertex represents a *state*.
-- Each edge carries a *probability* of transition between two states.
-- The sum of all outgoing probabilities from any vertex must equal **1** (Markov constraint).
+- Each vertex represents a state.
+- Each edge carries a transition probability in `(0, 1]`.
+- For every vertex, the **sum of outgoing probabilities is 1** (Markov constraint). :contentReference[oaicite:1]{index=1}
+
+The project is split into three main parts:
+
+- **Part 1 – Adjacency list & Markov validation**
+    - Read a graph from a text file.
+    - Store it as an *adjacency list*.
+    - Check whether it is a **Markov graph**.
+    - Export the graph to **Mermaid** format for visualisation.
+
+- **Part 2 – Strongly Connected Components & Hasse diagram**
+    - Compute **strongly connected components (SCCs)** using **Tarjan’s algorithm**. :contentReference[oaicite:2]{index=2}
+    - Build the **Hasse diagram** of classes.
+    - Classify classes and states as *transient*, *persistent*, *absorbing*.
+    - Check whether the graph is **irreducible**.
+
+- **Part 3 – Matrix representation & Markov chain behaviour**
+    - Convert the adjacency list to a **transition matrix**.
+    - Compute matrix powers \(M^k\) to observe multi-step transitions.
+    - Study **convergence** and **stationary distributions**.
+    - For each class, analyse convergence and compute the **period** (when relevant).
 
 ---
 
-## 🎯 Objectives
+## 📂 2. Repository structure
 
-1. **Read and construct** a graph from a text file (`data/input.txt`).
-2. **Store** the graph as an adjacency list.
-3. **Display** the graph structure in console form.
-4. **Verify** that the graph satisfies the *Markov property*.
-5. **Export** the graph to a **Mermaid format (.mmd)** for visualisation.
-6. **Handle errors and free memory** correctly.
-
----
-
-## 📂 Project Structure
-
+```text
+    2526_TI301I6_PRJ_GRP8/
+    ├── CMakeLists.txt           # Build configuration (C99, multiple targets)
+    ├── README.md                # This document
+    │
+    ├── data/                    # our first input graphs
+    │   ├── example1.txt
+    │   └── example2.txt
+    │
+    ├── doc/                     # Official statements and evaluation grid
+    │   ├── Auto-evaluation grid.xlsx
+    │   ├── sujet_partie1_EN.pdf
+    │   ├── sujet_partie2_EN.pdf
+    │   ├── Plan-PART1-PRJ.pdf       # Coding plan – Part 1
+    │   ├── Plan-PART2-PRJ.pdf       # Coding plan – Part 2
+    │   └── sujet_partie_3_EN.pdf
+    │
+    ├── include/                 # Public headers (project API)
+    │   ├── adj_list.h
+    │   ├── export_mermaid.h
+    │   ├── hasse.h
+    │   ├── markov_check.h
+    │   ├── matrix.h
+    │   ├── partition.h
+    │   └── tarjan.h
+    │
+    ├── src/                     # Core implementation
+    │   ├── adj_list.c           # Adjacency list creation / display / free / file read
+    │   ├── export_mermaid.c     # Export Markov graph (Part 1) to Mermaid
+    │   ├── hasse.c              # Hasse diagram construction & export (Part 2)
+    │   ├── main_part1.c         # Executable: graph_part1
+    │   ├── main_part2.c         # Executable: graph_part2 (Tarjan + Hasse)
+    │   ├── main_part3.c         # Executable: part3 (matrix & convergence)
+    │   ├── markov_check.c       # Markov validation (sum of outgoing probabilities)
+    │   ├── matrix.c             # Matrix operations & Part 3 logic
+    │   ├── partition.c          # Classes & partition management
+    │   └── tarjan.c             # Tarjan strongly connected components
+    │
+    ├── interface/               # Small SDL2 experiments (not required for grading)
+    │   ├── sdl_test.c
+    │   └── sdl_weather.c
+    │
+    └── test_bench/              # Bench data and generated Mermaid examples
+        ├── exemple1.txt
+        ├── etc...
 ```
-.
-├── CMakeLists.txt
-├── include/
-│   ├── adj_list.h
-│   ├── markov_check.h
-│   └── export_mermaid.h
-├── src/
-│   ├── main.c
-│   ├── adj_list.c
-│   ├── markov_check.c
-│   └── export_mermaid.c
-├── data/
-│   ├── valid.txt
-│   ├── invalid.txt
-│   └── borderline.txt
-├── output/
-│   └── graph_output.mmd
-└── README.md
-```
-
 ---
+## ⚙️ 3. Build instructions
 
-## 👥 Work Distribution (Group of 4)
+### 3.1 Requirements
 
-Check `Plan-Part1-PRJ`
+- C compiler with C99 support (GCC/Clang).
+- CMake ≥ 3.30.
+- (Optional) SDL2 development files for `/interface` demos.
 
----
+If SDL2 is missing, you can still build the core executables.
 
-## ⚙️ Compilation & Execution
-
-### 1️⃣ Configure the CMake project
-Ensure the `CMakeLists.txt` file defines:
-
-```cmake
-add_executable(graph_part1
-        src/main_part1.c
-        src/adj_list.c
-        src/markov_check.c
-        src/export_mermaid.c
-)
-target_include_directories(graph_part1 PRIVATE include)
+### 3.2 Build (command line)
 ```
-
-### 2️⃣ Build and run
-In CLion or terminal:
-```bash
-mkdir build && cd build
+mkdir -p cmake-build
+cd cmake-build
 cmake ..
-make
-./graph_part1
+cmake --build . --target graph_part1 graph_part2 part3
 ```
 
-### 3️⃣ Example input
-`data/example.txt`:
+---
+## 📄 4. Input File Format
+
+Graph input files in ```test_bench/``` follow the specification:
+
+```
+N
+i j p
+```
+
+Example:
 ```
 4
 1 1 0.95
 1 2 0.04
 1 3 0.01
-2 2 0.9
+2 2 0.90
 2 3 0.05
 2 4 0.05
-3 3 0.8
-3 4 0.2
-4 1 1
-```
-
-### 4️⃣ Expected output
-```
-Vertex 1 -> (1,0.95) (2,0.04) (3,0.01)
-Vertex 2 -> (2,0.90) (3,0.05) (4,0.05)
-Vertex 3 -> (3,0.80) (4,0.20)
-Vertex 4 -> (1,1.00)
-
-✅ The graph is a Markov graph
+3 3 0.80
+3 4 0.20
+4 1 1.00
 ```
 
 ---
+## 🧩 5. Part 1 – Markov Graph & Mermaid Export
 
-## 🧠 Markov Verification Logic
+### **Executable**
+`graph_part1`
 
-For each vertex *i*:
-```c
-float sum = 0;
-for each edge e in list[i]:
-    sum += e->proba;
+### **Main Features**
+- Construction of adjacency lists
+- Verification of Markov constraints
+- Human-readable graph display
+- Mermaid diagram export (`../output_files/<basename>_graph.mmd`)
 
-if (sum < 0.99 || sum > 1.00)
-    report "Vertex i invalid, sum = %f"
+### **Example Execution**
+```
+./graph_part1
+Enter graph file path: ../data/example1.txt
 ```
 
-If all sums ∈ [0.99, 1.00] → Graph is valid ✅
-
 ---
+## 🔗 6. Part 2 – SCC, Partition & Hasse Diagram
 
-## 🌐 Mermaid Export
+### **Executable**
+`graph_part2`
 
-If the graph is valid, a `.mmd` file is generated for Mermaid:
+### **Academic Contributions**
+- Complete SCC decomposition via Tarjan
+- Construction of the class graph
+- Hasse diagram reduction (partial order)
+- Identification of:
+    - Transient classes
+    - Persistent classes
+    - Absorbing states
+- Irreducibility assessment
 
-```mermaid
----
-config:
-   layout: elk
-   theme: neo
----
-flowchart LR
-A((1))
-B((2))
-C((3))
-D((4))
-A -->|0.01|C
-A -->|0.04|B
-A -->|0.95|A
-B -->|0.05|D
-B -->|0.05|C
-B -->|0.90|B
-C -->|0.20|D
-C -->|0.80|C
-D -->|1.00|A
+### **Example Execution**
+```
+./graph_part2
+Enter graph file path: ../data/example1.txt
 ```
 
-File path (example): `output/graph_output.mmd`
+---
+
+## 🔢 7. Part 3 – Matrix Analysis, Convergence & Periods
+
+### **Executable**
+`part3`
+
+### **Capabilities**
+- Matrix representation of a Markov system
+- Powers of M: M, M³, M⁷, …
+- Convergence evaluation
+- Numerical approximation of stationary behaviour
+- Per-class period computation
+
+### **Example Execution**
+```
+./part3
+Enter graph file path: ../data/example1.txt
+```
 
 ---
 
-## 🧪 Validation Checklist
+## ⚠️ 8. Error Handling
 
-- [x] Load graph from `.txt`
-- [x] Display adjacency list
-- [x] Verify Markov constraint
-- [x] Export valid `.mmd` file
-- [x] No warnings or memory leaks
-- [x] Tested with `valid.txt`, `invalid.txt`, `borderline.txt`
+The system performs robust validation for:
+- Missing/unreadable files
+- Incorrect formatting
+- Invalid probabilities
+- Non-Markov vertices
+- Allocation failures
+- Export errors
+
+All errors are reported with explicit academic-style diagnostics in the shell.
+
+---
+## 🚀 9. Quick Testing Suite
+
+```
+./graph_part1    # Part 1: Markov + Mermaid
+./graph_part2    # Part 2: SCC + Hasse
+./part3          # Part 3: Matrices + Convergence
+```
+
+Test datasets are available in `data/` and `test_bench/` with outputs file in `output_files/` .
 
 ---
 
-## 🧰 Return Codes
+## 🎓 10. Summary
 
-| Code | Meaning              |
-|------|----------------------|
-| `0`  | Success              |
-| `1`  | Non-Markov graph     |
-| `2`  | File or memory error |
+This repository provides:
+- A robust C implementation aligned with TI301I academic standards
+- Three fully independent executables
+- Complete analysis pipeline (graph → SCC → Hasse → matrix → chain behaviour)
+- Mermaid exports for visual interpretation
+- Clean and modular code architecture
+
+This project satisfies the complete specification for the TI301I Markov Graph study.
+
+---
+## 🧠 11. Work Distribution
+
+Developed by **Group 8**,
+
+### Team Members
+
+- **Daccache Hadi**
+- **Gastaldo Raphael**
+- **Johannel Alexandre**
+- **Rubem Adrian**
+
+- **Raphael Gastaldo**  
+  Lead on **Part 1** (file loading, adjacency list, Markov validation, Mermaid export).  
+  Co-responsible for **Part 2 design and implementation** (Tarjan partition, Hasse diagram, Mermaid export).
+
+- **Rubem Adrian**  
+  Co-responsible for **Part 2**: design documents, Tarjan-based partitioning into classes, links between classes, Hasse diagram and Mermaid export.  
+  Contributed to the interpretation and validation of the class structure.
+
+- **Daccache Hadi**  
+  Co-responsible for **Part 3**: transformation of the graph into a matrix, creation of class sub-matrices, computation of stationary distributions.  
+  Contributed to the analysis of convergence behaviour.
+
+- **Johannel Alexandre**  
+  Co-responsible for **Part 3**: matrix construction pipeline, management of sub-matrices by class, stationary distribution calculations.  
+  Participated in testing and verification of numerical results.
+
+This work distribution section reflects the information reported in the official auto-evaluation grid.
 
 ---
 
-## 🧼 Final Deliverables
+## 🧩 12. Bonus Features (Optional Development)
 
-- Source code (`main.c`, `adj_list.c`, `markov_check.c`, `export_mermaid.c`)
-- Headers (`.h`)
-- Sample data files
-- Generated `.mmd` file
-- This `README.md`
-- Clean compilation (`-Wall -Wextra -pedantic` → no warnings)
+Although not required in the TI301I specification, the group implemented an additional **SDL2-based graphical extension** to explore how Markov graph processing could be connected to a minimal interactive interface.
+
+### 12.1 Objective of the Bonus
+This optional module demonstrates:
+
+- Basic visual display through **SDL2**
+- Rendering of simple shapes, text, or graph-related data
+- Exploration of UI loops and event handling
+- A potential direction for extending Parts 1–3 into a fully interactive viewer
+
+While not evaluated, this bonus illustrates initiative beyond the core academic expectations.
+
+### 12.2 Accessing the Bonus Code
+The bonus code is available in the `interface/` directory of the project:
+
+👉 **[Click here to download the bonus folder](https://mega.nz/file/HdkGhSjT#ZszxWI3Xtjz4TFY8R1Tvnc4G0ZcZS0iJXPZeudwP25g)**
+
+This folder contains:
+
+- `sdl_test.c` — SDL initialisation and rendering sandbox
+- `sdl_weather.c` — extended text and UI experimentation
+
+### 12.3 Build Notes
+The bonus requires **SDL2** and **SDL_ttf**.  
+If these libraries are not installed, the bonus can be ignored safely without affecting Parts 1–3.
+
+The entire bonus is fully isolated and does not modify any mandatory component of the project.
