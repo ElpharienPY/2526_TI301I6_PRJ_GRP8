@@ -3,16 +3,21 @@
 
 #include <stdio.h>
 
+// Structure representing an edge (transition) to a target vertex
+//(It is a node in a singly linked list)
+
 typedef struct EdgeCell {
     int v;
     float p;
     struct EdgeCell *next;
 } EdgeCell;
 
+// list of outgoing edges for a given vertex
 typedef struct {
     EdgeCell *head;
 } EdgeList;
 
+// Main graph structure (Adjacency List)
 typedef struct {
     int n;
     EdgeList *L;

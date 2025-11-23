@@ -27,8 +27,10 @@ typedef enum {
 
 /* --------- API ---------- */
 
+//generates a text id for mermaid from an integer index
 size_t nodeId(int idx1, char *out, size_t out_cap);
 
+//exports the graph to a .mmd file
 int writeMermaid(const AdjList *adj, const char *filepath);
 
 #endif //EXPORT_MERMAID_H
