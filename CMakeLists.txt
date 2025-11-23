@@ -18,8 +18,6 @@ add_executable(graph_part2
         src/tarjan.c
         src/hasse.c
         src/partition.c
-        interface/sdl_test.c
-        interface/sdl_weather.c
 )
 
 add_executable(part3
